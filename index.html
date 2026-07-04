@@ -63,19 +63,21 @@
     position:relative;
     background:linear-gradient(160deg, rgba(255,255,255,.11), rgba(255,255,255,.04));
     border:1px solid rgba(255,255,255,.18);
-    border-radius:26px; padding:16px; display:flex; gap:16px; align-items:stretch;
+    border-radius:26px; padding:16px; display:flex; gap:16px; align-items:center;
     backdrop-filter:blur(8px); margin-bottom:22px;
     box-shadow:0 16px 40px rgba(0,0,0,.35), 0 0 60px rgba(120,80,230,.15),
       inset 0 1px 0 rgba(255,255,255,.14);
   }
-  /* bordered rounded avatar (opaque 3d art, head crop) */
+  /* bordered rounded avatar (opaque 3d art, head crop), square, tappable */
   .avatar3d {
-    flex-shrink:0; align-self:stretch; width:118px; min-height:140px;
+    flex-shrink:0; width:116px; height:116px; cursor:pointer;
     border-radius:22px; border:2px solid rgba(160,120,255,.45);
-    background-size:230%; background-position:50% 8%; background-repeat:no-repeat;
+    background-size:210%; background-position:50% 10%; background-repeat:no-repeat;
     background-color:#f2eef6;
     box-shadow:0 10px 24px rgba(0,0,0,.4), 0 0 20px rgba(120,80,230,.25);
+    transition:transform .12s;
   }
+  .avatar3d:active { transform:scale(.95); }
   .avatar3d.girl { border-color:rgba(255,158,207,.55);
     box-shadow:0 10px 24px rgba(0,0,0,.4), 0 0 20px rgba(255,130,190,.3); }
   .hero-info { flex:1; min-width:0; }
@@ -100,6 +102,56 @@
   .hero h1 { font-size:26px; margin-bottom:0; padding-right:40px;
     text-shadow:0 2px 8px rgba(0,0,0,.4); }
   .rank { font-size:13px; color:#ffd76e; margin-bottom:8px; opacity:.95; }
+
+  /* ---------- character game card modal ---------- */
+  .card-overlay {
+    position:fixed; inset:0; z-index:90; padding:20px;
+    background:rgba(8,6,30,.72); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    animation:fadeIn .2s;
+  }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  .game-card {
+    position:relative; width:100%; max-width:330px; border-radius:28px; padding:10px;
+    background:linear-gradient(160deg,#8f6bff,#5a34c9 55%,#3d2380);
+    box-shadow:0 30px 70px rgba(0,0,0,.6), 0 0 50px rgba(120,80,230,.35),
+      inset 0 1px 0 rgba(255,255,255,.35);
+    animation:pop .35s;
+  }
+  .game-card.girl { background:linear-gradient(160deg,#ff9ecf,#e2569b 55%,#8f2d63);
+    box-shadow:0 30px 70px rgba(0,0,0,.6), 0 0 50px rgba(255,120,190,.35),
+      inset 0 1px 0 rgba(255,255,255,.35); }
+  .gc-inner { background:linear-gradient(180deg,#ffffff,#f4f0ff); border-radius:20px;
+    padding:12px 12px 8px; color:#333; }
+  .gc-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .gc-class { background:#efe9ff; color:#6a3fd4; font-weight:bold; font-size:13px;
+    padding:4px 14px; border-radius:999px; box-shadow:inset 0 1px 0 #fff; }
+  .game-card.girl .gc-class { background:#ffe4f1; color:#c2417e; }
+  .gc-num { font-weight:bold; font-size:14px; color:#b0a8c8; letter-spacing:1px; }
+  .gc-art {
+    position:relative; aspect-ratio:1/1; border-radius:16px; border:2px solid #e6ddff;
+    background-size:cover; background-position:center;
+    box-shadow:inset 0 0 30px rgba(143,107,255,.15);
+  }
+  .gc-name {
+    position:absolute; bottom:-16px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(180deg,#ffd76e,#ffb340); color:#5a2d00;
+    padding:5px 24px; border-radius:14px; font-weight:bold; font-size:22px;
+    box-shadow:0 4px 0 #d97b1e, 0 8px 16px rgba(0,0,0,.25); white-space:nowrap;
+  }
+  .gc-rows { margin-top:26px; }
+  .gc-row { display:flex; justify-content:space-between; align-items:center;
+    padding:7px 4px; border-top:1px solid #ece5ff; font-size:14px; }
+  .gc-row .lbl { color:#9a90bd; font-weight:bold; font-size:11px; letter-spacing:.5px;
+    display:flex; gap:6px; align-items:center; text-transform:uppercase; }
+  .gc-row .val { font-weight:bold; color:#4a3f70; }
+  .gc-desc { font-size:13px; color:#7d74a0; font-style:italic; text-align:center;
+    padding:10px 10px 6px; line-height:1.5; }
+  .gc-close {
+    position:absolute; top:-13px; right:-13px; width:42px; height:42px; border-radius:50%;
+    background:#fff; color:#5a34c9; border:none; font-size:18px; cursor:pointer;
+    box-shadow:0 6px 16px rgba(0,0,0,.45); font-family:inherit; font-weight:bold;
+  }
 
   /* ---------- floating sound + bottom nav ---------- */
   .sound-fab {
@@ -1011,7 +1063,8 @@ function renderHome(){
   const r = rankInfo();
   let html =
     '<div class="hero">'+
-    '<div class="avatar3d'+(state.char.g==='f'?' girl':'')+'" style="background-image:url(\''+
+    '<div class="avatar3d'+(state.char.g==='f'?' girl':'')+'" onclick="showCharCard()" '+
+      'title="Карточка героя" style="background-image:url(\''+
       charImg(state.char.g, r.idx)+'\')"></div>'+
     '<div class="hero-info">'+
     '<h1>'+N()+'</h1>'+
@@ -1062,6 +1115,56 @@ function renderHome(){
   html += '<button class="reset" onclick="resetProgress()">сбросить прогресс</button>';
   html += '<div class="legal">© 2026 Dmitrii Satinaev · <a href="about.html">о приложении</a></div>';
   app.innerHTML = html;
+}
+
+/* ---------- character game card ---------- */
+const CHAR_DESCS = {
+  f: [
+    'Мурлычет громче ракетного двигателя, когда решает примеры.',
+    'Сосчитала все звёзды в иллюминаторе. Дважды. Для надёжности.',
+    'Прячет космопончики под скафандром. Все это знают, но молчат.',
+    'Однажды обогнала комету. Комета до сих пор дуется.',
+    'Умывается 14 раз в день. Даже в невесомости.',
+    'Может уснуть в любой точке галактики. Особенно на клавиатуре звездолёта.'
+  ],
+  m: [
+    'Мурлычет громче ракетного двигателя, когда решает примеры.',
+    'Сосчитал все звёзды в иллюминаторе. Дважды. Для надёжности.',
+    'Прячет космопончики под скафандром. Все это знают, но молчат.',
+    'Однажды обогнал комету. Комета до сих пор дуется.',
+    'Точит когти только о специальный астероид. Он воспитанный.',
+    'Может уснуть в любой точке галактики. Особенно на клавиатуре звездолёта.'
+  ]
+};
+
+function showCharCard(){
+  sndClick();
+  const r = rankInfo();
+  const el = document.createElement('div');
+  el.className = 'card-overlay';
+  el.id = 'cardOverlay';
+  el.addEventListener('click', e => { if (e.target === el) closeCharCard(); });
+  el.innerHTML =
+    '<div class="game-card'+(state.char.g==='f'?' girl':'')+'">'+
+    '<button class="gc-close" onclick="closeCharCard()">✕</button>'+
+    '<div class="gc-inner">'+
+    '<div class="gc-top"><span class="gc-class">'+AV()+' '+T()+'</span>'+
+      '<span class="gc-num">№ 0'+(r.idx+1)+'</span></div>'+
+    '<div class="gc-art" style="background-image:url(\''+charImg(state.char.g, r.idx)+'\')">'+
+      '<div class="gc-name">'+N()+'</div></div>'+
+    '<div class="gc-rows">'+
+    '<div class="gc-row"><span class="lbl">🎖️ Ранг</span><span class="val"><span class="rank-pill">'+r.icon+' '+r.name+'</span></span></div>'+
+    '<div class="gc-row"><span class="lbl">🚀 Уровень героя</span><span class="val">'+(r.idx+1)+' из '+RANKS.length+'</span></div>'+
+    '<div class="gc-row"><span class="lbl">✨ Опыт</span><span class="val">'+state.xp+' XP</span></div>'+
+    '<div class="gc-row"><span class="lbl">⭐ Звёзды</span><span class="val">'+totalStars()+' из '+MAX_STARS+'</span></div>'+
+    '</div>'+
+    '<div class="gc-desc">«'+pick(CHAR_DESCS[state.char.g])+'»</div>'+
+    '</div></div>';
+  document.body.appendChild(el);
+}
+function closeCharCard(){
+  const el = document.getElementById('cardOverlay');
+  if (el){ el.remove(); sndClick(); }
 }
 
 function resetProgress(){
