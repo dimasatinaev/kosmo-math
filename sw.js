@@ -1,5 +1,5 @@
 /* Космоматематика — service worker: offline play, cache-first */
-const CACHE = 'kosmomath-v3';
+const CACHE = 'kosmomath-v4';
 const CHARS = ['Nika','Kogot'];
 const RANKS = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
 const ASSETS = [
@@ -42,12 +42,17 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // assets: cache-first
+  // assets: cache-first (same-origin + Google Fonts, so the font works offline)
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(hit =>
       hit ||
       fetch(e.request).then(resp => {
-        if (resp.ok && new URL(e.request.url).origin === location.origin) {
+        const origin = new URL(e.request.url).origin;
+        const isFontCdn = origin === 'https://fonts.googleapis.com' || origin === 'https://fonts.gstatic.com';
+        const cacheable = origin === location.origin
+          ? resp.ok
+          : isFontCdn && (resp.ok || resp.type === 'opaque');
+        if (cacheable) {
           const copy = resp.clone();
           caches.open(CACHE).then(c => c.put(e.request, copy));
         }
