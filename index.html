@@ -365,7 +365,29 @@
     border:10px solid transparent; border-bottom-color:#fff; border-top:none; }
   .bubble .who { font-weight:bold; color:#7a4fd4; display:block; margin-bottom:4px; }
   .bubble.villain .who { color:#c0392b; }
-  .intro-dots { margin-top:14px; font-size:13px; letter-spacing:4px; opacity:.7; }
+  .intro-dots { display:flex; gap:12px; justify-content:center; margin-top:16px; }
+  .intro-dots i { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.32); transition:.2s; }
+  .intro-dots i.on { background:#fff; transform:scale(1.2); }
+
+  /* dialog reveal effects (typewriter, talking, villain mode) */
+  .speaker.talking { animation:dlgBob .5s ease-in-out infinite; }
+  @keyframes dlgBob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+  .bubble .dlg-text { white-space:pre-wrap; min-height:2.9em; display:block; }
+  .evilfx { position:fixed; inset:0; pointer-events:none; z-index:5; opacity:0; transition:opacity .35s;
+    background:radial-gradient(ellipse at center, transparent 46%, rgba(150,12,12,.34) 100%); }
+  .evilfx.on { opacity:1; }
+  .intro-scene.evil .bubble { box-shadow:0 16px 36px rgba(0,0,0,.4), 0 0 42px rgba(224,73,47,.5); }
+  .intro-scene.evil .speaker { filter:drop-shadow(0 8px 14px rgba(224,73,47,.6)); }
+  .intro-scene.evil .bubble .dlg-text { color:#8a2a1c; }
+  .intro-scene.evil.revealing .bubble { animation:dlgShake .25s infinite; }
+  .intro-scene.evil.revealing .speaker { animation:dlgJitter .19s infinite; }
+  .intro-scene.evil.revealing .btn-next { animation:dlgBtnShake .12s infinite; }
+  @keyframes dlgShake { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-2.5px,.8px)}
+    40%{transform:translate(2.5px,-1.7px)} 60%{transform:translate(-1.7px,1.7px)} 80%{transform:translate(1.7px,-.8px)} }
+  @keyframes dlgJitter { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(-2.5px,-1.7px) rotate(-3.4deg)}
+    50%{transform:translate(2.5px,.8px) rotate(2.5deg)} 75%{transform:translate(-.8px,1.7px) rotate(-1.7deg)} }
+  @keyframes dlgBtnShake { 0%,100%{transform:translate(0,0)} 25%{transform:translate(-1.7px,.8px)}
+    50%{transform:translate(1.7px,-.8px)} 75%{transform:translate(-.8px,-.8px)} }
 
   /* ---------- task screen ---------- */
   .topbar { display:flex; align-items:center; gap:12px; margin-bottom:18px; padding-right:52px; }
@@ -1664,71 +1686,94 @@ function setGender(g){
 }
 function saveChar(){ grabName(); save(); sndCorrect(); renderHome(); }
 
-/* ---------- world intro dialog ---------- */
-function renderIntro(wi, li, idx){
+/* ---------- dialog scenes (intro & outro) with reveal effects ---------- */
+let revealTimer = null;
+const SCRAMBLE = '#@%&*<>/░▒▓█';
+
+function startReveal(text, evil){
+  clearInterval(revealTimer);
+  const el = document.getElementById('dlgText');
+  if (!el) return;
+  el._full = text;
+  let i = 0;
+  const total = text.length;
+  revealTimer = setInterval(()=>{
+    i++;
+    if (i >= total){ finishReveal(); return; }
+    if (evil){
+      // villain "mixes everything up": a scrambled tail decodes into the real text
+      const tail = Math.min(total, i+6);
+      let scr = '';
+      for (let k=i;k<tail;k++)
+        scr += text[k]===' ' ? ' ' : SCRAMBLE[Math.floor(Math.random()*SCRAMBLE.length)];
+      el.textContent = text.slice(0,i) + scr;
+    } else {
+      el.textContent = text.slice(0,i);   // clean typewriter
+    }
+  }, evil ? 30 : 40);
+}
+function finishReveal(){
+  clearInterval(revealTimer); revealTimer = null;
+  const el = document.getElementById('dlgText');
+  if (el && el._full !== undefined) el.textContent = el._full;
+  const scene = document.getElementById('dlgScene');
+  if (scene) scene.classList.remove('revealing');
+  const sp = document.getElementById('dlgSpeaker');
+  if (sp) sp.classList.remove('talking');
+}
+function bubbleTap(){
+  if (revealTimer){ finishReveal(); return; }        // tap while typing → show all
+  const nameEl = document.getElementById('dlgName');
+  const el = document.getElementById('dlgText');
+  if (nameEl && el) speak(nameEl.textContent+'. '+el.textContent, true);   // tap later → replay voice
+}
+
+function renderDialogScene(wi, li, idx, mode){
   setChrome('task');
   sndClick();
   const W = WORLDS[wi];
-  const lines = W.intro[LANG()];
+  const lines = (mode==='intro' ? W.intro : OUTROS[wi])[LANG()];
   const line = lines[idx];
-  const whoName = line[0]==='h' ? hn(W.cast)
-                : line[0]==='v' ? vn(W.cast)
-                : T()+' '+N();
-  const whoE = line[0]==='h' ? W.cast.h.e : line[0]==='v' ? W.cast.v.e : AV();
+  const evil = line[0]==='v';
+  const whoName = line[0]==='h' ? hn(W.cast) : evil ? vn(W.cast) : T()+' '+N();
+  const whoE = line[0]==='h' ? W.cast.h.e : evil ? W.cast.v.e : AV();
   const text = line[1].replace(/\{N\}/g, N());
   const last = idx === lines.length - 1;
-  const dots = lines.map((_,i)=> i===idx?'●':'○').join(' ');
+  const dots = lines.map((_,i)=> '<i'+(i===idx?' class="on"':'')+'></i>').join('');
   const speaker = line[0]==='p'
-    ? '<img class="speaker-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
-    : '<span class="speaker">'+whoE+'</span>';
+    ? '<img class="speaker-img" id="dlgSpeaker" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
+    : '<span class="speaker'+(evil?'':' talking')+'" id="dlgSpeaker">'+whoE+'</span>';
+  const nextClick = last
+    ? (mode==='intro' ? 'introDone('+wi+','+li+')' : 'outroDone('+wi+')')
+    : 'renderDialogScene('+wi+','+li+','+(idx+1)+',\''+mode+'\')';
+  const nextLabel = last
+    ? (mode==='intro' ? tr('В путь! 🚀','Let’s go! 🚀') : tr('Прощай! 👋','Farewell! 👋'))
+    : tr('Дальше ➜','Next ➜');
   app.innerHTML =
-    '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
-    '<div class="intro-scene">'+
-    '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+'</div>'+
+    (mode==='intro'
+      ? '<div class="topbar"><button class="btn-close" onclick="finishReveal();renderHome()">✕</button><div style="flex:1"></div></div>'
+      : '')+
+    '<div class="evilfx'+(evil?' on':'')+'"></div>'+
+    '<div class="intro-scene'+(evil?' evil revealing':'')+'" id="dlgScene">'+
+    '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+(mode==='outro'?' ✨':'')+'</div>'+
     speaker+
-    '<div class="bubble'+(line[0]==='v'?' villain':'')+'" onclick="speak(this.textContent, true)">'+
-      '<span class="who">'+whoName+(ttsOk()?' 🔊':'')+'</span>'+text+'</div>'+
-    '<button class="btn-next" onclick="'+
-      (last ? 'introDone('+wi+','+li+')' : 'renderIntro('+wi+','+li+','+(idx+1)+')')+'">'+
-      (last ? tr('В путь! 🚀','Let’s go! 🚀') : tr('Дальше ➜','Next ➜'))+'</button>'+
+    '<div class="bubble'+(evil?' villain':'')+'" onclick="bubbleTap()">'+
+      '<span class="who" id="dlgName">'+whoName+(ttsOk()?' 🔊':'')+'</span>'+
+      '<span class="dlg-text" id="dlgText"></span></div>'+
+    '<button class="btn-next" onclick="finishReveal();'+nextClick+'">'+nextLabel+'</button>'+
     '<div class="intro-dots">'+dots+'</div>'+
     '</div>';
-  if (line[0]==='v') beep(180,.25,0,'sawtooth',.05);
+  startReveal(text, evil);
+  if (evil) beep(180,.25,0,'sawtooth',.05);
   speak(whoName+'. '+text);   // auto-read the dialog line (tap the bubble to replay)
 }
+
+/* ---------- world intro dialog ---------- */
+function renderIntro(wi, li, idx){ renderDialogScene(wi, li, idx, 'intro'); }
 function introDone(wi, li){ state.intros[wi] = true; save(); beginLevel(wi, li); }
 
 /* ---------- world-clear outro ---------- */
-function renderOutro(wi, idx){
-  setChrome('task');
-  sndClick();
-  const W = WORLDS[wi];
-  const lines = OUTROS[wi][LANG()];
-  const line = lines[idx];
-  const whoName = line[0]==='h' ? hn(W.cast)
-                : line[0]==='v' ? vn(W.cast)
-                : T()+' '+N();
-  const whoE = line[0]==='h' ? W.cast.h.e : line[0]==='v' ? W.cast.v.e : AV();
-  const text = line[1].replace(/\{N\}/g, N());
-  const last = idx === lines.length - 1;
-  const dots = lines.map((_,i)=> i===idx?'●':'○').join(' ');
-  const speaker = line[0]==='p'
-    ? '<img class="speaker-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
-    : '<span class="speaker">'+whoE+'</span>';
-  app.innerHTML =
-    '<div class="intro-scene">'+
-    '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+' ✨</div>'+
-    speaker+
-    '<div class="bubble'+(line[0]==='v'?' villain':'')+'" onclick="speak(this.textContent, true)">'+
-      '<span class="who">'+whoName+(ttsOk()?' 🔊':'')+'</span>'+text+'</div>'+
-    '<button class="btn-next" onclick="'+
-      (last ? 'outroDone('+wi+')' : 'renderOutro('+wi+','+(idx+1)+')')+'">'+
-      (last ? tr('Прощай! 👋','Farewell! 👋') : tr('Дальше ➜','Next ➜'))+'</button>'+
-    '<div class="intro-dots">'+dots+'</div>'+
-    '</div>';
-  if (line[0]==='v') beep(180,.25,0,'sawtooth',.05);
-  speak(whoName+'. '+text);
-}
+function renderOutro(wi, idx){ renderDialogScene(wi, 0, idx, 'outro'); }
 function outroDone(wi){
   state.outros[wi] = true; save();
   const W = WORLDS[wi];
