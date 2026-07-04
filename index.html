@@ -356,8 +356,8 @@
   .speaker { font-size:68px; display:block; margin:10px auto 4px; animation:pop .4s; }
   .bubble {
     position:relative; background:linear-gradient(180deg,#ffffff,#f6f3ff); color:#333;
-    border-radius:22px; padding:16px 18px; margin:16px auto 20px; max-width:420px;
-    font-size:17px; line-height:1.45;
+    border-radius:22px; padding:16px 20px; margin:16px auto 20px; max-width:420px;
+    font-size:17px; line-height:1.45; text-align:left;
     box-shadow:0 16px 36px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.08);
   }
   .speaker { filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)); }
@@ -962,13 +962,17 @@ const WORLDS = [
            v:{n:{ru:'ворона Карка', en:'Karka the Crow'}, e:'🐦‍⬛', g:'f'} },
     intro:{
       ru:[
-        ['h','Мяу! Привет, {N}! Я котёнок Пуша. На нашей планете столько всего интересного — помоги мне всё сосчитать!'],
-        ['v','Кар-р-р! А я ворона Карка! Я всё перепутаю, и вы собьётесь со счёта!'],
+        ['h','Мяу! Привет, {N}! Я котёнок Пуша.'],
+        ['h','На нашей планете столько всего интересного — помоги мне всё сосчитать!'],
+        ['v','Кар-р-р! А я ворона Карка!'],
+        ['v','Я всё перепутаю, и вы собьётесь со счёта!'],
         ['p','Не выйдет, Карка! Мы с Пушей умеем считать. Вперёд!'],
       ],
       en:[
-        ['h','Meow! Hi, {N}! I am Pusha the Kitten. There is so much to see on our planet — help me count it all!'],
-        ['v','Caw-caw! And I am Karka the Crow! I will mix everything up and you will lose count!'],
+        ['h','Meow! Hi, {N}! I am Pusha the Kitten.'],
+        ['h','There is so much to see on our planet — help me count it all!'],
+        ['v','Caw-caw! And I am Karka the Crow!'],
+        ['v','I will mix everything up and you will lose count!'],
         ['p','No way, Karka! Pusha and I know how to count. Let’s go!'],
       ]
     },
@@ -992,13 +996,17 @@ const WORLDS = [
            v:{n:{ru:'метеорит Бум', en:'Boom the Meteor'}, e:'☄️', g:'m'} },
     intro:{
       ru:[
-        ['h','Привет, {N}! Я лунный заяц Луня. Мои лунные камушки рассыпались по всем кратерам — поможешь их складывать и вычитать?'],
-        ['v','БУМ-М-М! Я метеорит Бум! Сейчас разобью все ваши примеры на кусочки!'],
+        ['h','Привет, {N}! Я лунный заяц Луня.'],
+        ['h','Мои лунные камушки рассыпались по всем кратерам — поможешь их складывать и вычитать?'],
+        ['v','БУМ-М-М! Я метеорит Бум!'],
+        ['v','Сейчас разобью все ваши примеры на кусочки!'],
         ['p','Плюс и минус нас не подведут. Летим, Луня!'],
       ],
       en:[
-        ['h','Hi, {N}! I am Lunya the Moon Bunny. My moon pebbles are scattered all over the craters — will you help me add and subtract them?'],
-        ['v','BOO-O-OM! I am Boom the Meteor! I will smash all your sums to pieces!'],
+        ['h','Hi, {N}! I am Lunya the Moon Bunny.'],
+        ['h','My moon pebbles are scattered all over the craters — will you help me add and subtract them?'],
+        ['v','BOO-O-OM! I am Boom the Meteor!'],
+        ['v','I will smash all your sums to pieces!'],
         ['p','Plus and minus won’t let us down. Let’s fly, Lunya!'],
       ]
     },
@@ -1022,12 +1030,14 @@ const WORLDS = [
            v:{n:{ru:'пират Крыс', en:'Pirate Kryss'}, e:'🏴‍☠️', g:'m'} },
     intro:{
       ru:[
-        ['h','Зюм-зюм! Я Зюм, собиратель кристаллов. Здесь их видимо-невидимо — целых двадцать в одной куче! Поможешь сосчитать?'],
+        ['h','Зюм-зюм! Я Зюм, собиратель кристаллов.'],
+        ['h','Здесь кристаллов видимо-невидимо — целых двадцать в одной куче! Поможешь сосчитать?'],
         ['v','Йо-хо-хо! Космический пират Крыс! Все кристаллы будут мои!'],
         ['p','Сокровища достаются тем, кто умеет считать до 20. За дело!'],
       ],
       en:[
-        ['h','Zyum-zyum! I am Zyum, the crystal collector. There are heaps of them here — twenty in one pile! Will you help me count?'],
+        ['h','Zyum-zyum! I am Zyum, the crystal collector.'],
+        ['h','There are heaps of crystals here — twenty in one pile! Will you help me count?'],
         ['v','Yo-ho-ho! Space Pirate Kryss! All the crystals will be mine!'],
         ['p','Treasures go to those who can count to 20. Let’s get to work!'],
       ]
@@ -1051,12 +1061,14 @@ const WORLDS = [
            v:{n:{ru:'Механикус', en:'Mechanicus'}, e:'🦾', g:'m'} },
     intro:{
       ru:[
-        ['h','Бип-бип! Я роботёнок Винтик! У нас на планете всё было по порядку... а теперь узоры и ряды перепутались. Почини их, {N}!'],
+        ['h','Бип-бип! Я роботёнок Винтик!'],
+        ['h','У нас всё было по порядку... а теперь узоры и ряды перепутались. Почини их, {N}!'],
         ['v','Я — Механикус. Без моего экзамена дальше не пройдёт никто. Логика или ничего!'],
         ['p','Мы обожаем загадки! Начинаем, Винтик!'],
       ],
       en:[
-        ['h','Beep-beep! I am Vintik the Little Robot! Everything on our planet used to be in order... but now the patterns and rows are all mixed up. Fix them, {N}!'],
+        ['h','Beep-beep! I am Vintik the Little Robot!'],
+        ['h','Everything used to be in order... but now the patterns are all mixed up. Fix them, {N}!'],
         ['v','I am Mechanicus. Nobody passes without my exam. Logic or nothing!'],
         ['p','We love puzzles! Let’s start, Vintik!'],
       ]
@@ -1080,13 +1092,17 @@ const WORLDS = [
            v:{n:{ru:'хранитель Тик-Так', en:'Tick-Tock the Timekeeper'}, e:'⏱️', g:'m'} },
     intro:{
       ru:[
-        ['h','Уху! Я сова Умница. В нашей туманности перепутались часы, дни недели и даже монетки. Наведём порядок вместе?'],
-        ['v','Тик-так, тик-так... Я хранитель времени. Отгадаешь мои загадки — пропущу. Нет — останешься здесь навсегда... тик-так!'],
+        ['h','Уху! Я сова Умница.'],
+        ['h','В нашей туманности перепутались часы, дни недели и даже монетки. Наведём порядок вместе?'],
+        ['v','Тик-так, тик-так... Я хранитель времени.'],
+        ['v','Отгадаешь мои загадки — пропущу. Нет — останешься здесь навсегда... тик-так!'],
         ['p','Времени зря не теряем — за дело!'],
       ],
       en:[
-        ['h','Hoo-hoo! I am Umnitsa the Owl. In our nebula the clocks, weekdays and even the coins got all mixed up. Shall we tidy up together?'],
-        ['v','Tick-tock, tick-tock... I am the Timekeeper. Solve my riddles and I will let you pass. If not — you stay here forever... tick-tock!'],
+        ['h','Hoo-hoo! I am Umnitsa the Owl.'],
+        ['h','The clocks, weekdays and even the coins got all mixed up. Shall we tidy up together?'],
+        ['v','Tick-tock, tick-tock... I am the Timekeeper.'],
+        ['v','Solve my riddles and I will let you pass. If not — you stay here forever... tick-tock!'],
         ['p','No time to waste — let’s do this!'],
       ]
     },
@@ -1110,12 +1126,14 @@ const WORLDS = [
            v:{n:{ru:'чёрная дыра Мгла', en:'Murk the Black Hole'}, e:'🕳️', g:'f'} },
     intro:{
       ru:[
-        ['h','Приветствую, {N}! Капитан Галактион на связи. Ты у самого края карты — впереди самые сложные задания галактики!'],
+        ['h','Приветствую, {N}! Капитан Галактион на связи.'],
+        ['h','Ты у самого края карты — впереди самые сложные задания галактики!'],
         ['v','Я — Мгла. Всё, что подлетает близко, исчезает во мне... даже правильные ответы!'],
         ['p','Мы не боимся темноты. Полный вперёд!'],
       ],
       en:[
-        ['h','Greetings, {N}! Captain Galaktion speaking. You are at the very edge of the map — the hardest missions in the galaxy lie ahead!'],
+        ['h','Greetings, {N}! Captain Galaktion speaking.'],
+        ['h','You are at the very edge of the map — the hardest missions in the galaxy lie ahead!'],
         ['v','I am Murk. Everything that flies too close disappears inside me... even correct answers!'],
         ['p','We are not afraid of the dark. Full speed ahead!'],
       ]
@@ -1137,12 +1155,14 @@ const MAX_STARS = WORLDS.reduce((s,w)=> s + w.levels.length*3, 0);
 /* world-clear outro dialogs: villain gives up, hero + helper celebrate */
 const OUTROS = [
   { ru:[
-      ['v','Кар-р! Ну и пусть! Вы всё сосчитали без единой ошибки... Улетаю на другую планету!'],
+      ['v','Кар-р! Ну и пусть! Вы всё сосчитали без единой ошибки...'],
+      ['v','Улетаю на другую планету!'],
       ['p','Счёт до десяти — наша суперсила! Прощай, Карка!'],
       ['h','Мяу! Спасибо, {N}! Теперь на Родной планете полный порядок. Прилетай в гости!'],
     ],
     en:[
-      ['v','Caw-caw! Fine! You counted everything without a single mistake... I am flying to another planet!'],
+      ['v','Caw-caw! Fine! You counted everything without a single mistake...'],
+      ['v','I am flying to another planet!'],
       ['p','Counting to ten is our superpower! Farewell, Karka!'],
       ['h','Meow! Thank you, {N}! Home Planet is all tidy now. Come visit anytime!'],
     ]},
@@ -1167,12 +1187,14 @@ const OUTROS = [
       ['h','Zyum-zyum! The crystals are saved! You are an honorary collector of the Asteroid Belt, {N}!'],
     ]},
   { ru:[
-      ['v','Экзамен... сдан. На отлично. Моя логика больше не нужна... Ухожу в спящий режим. Далеко отсюда.'],
+      ['v','Экзамен... сдан. На отлично.'],
+      ['v','Моя логика больше не нужна... Ухожу в спящий режим. Далеко отсюда.'],
       ['p','Логика — наш лучший инструмент, Механикус!'],
       ['h','Бип-бип! Все узоры и ряды снова по порядку! Ты — мастер логики, {N}!'],
     ],
     en:[
-      ['v','Exam... passed. With honors. My logic is no longer needed... Entering sleep mode. Far away from here.'],
+      ['v','Exam... passed. With honors.'],
+      ['v','My logic is no longer needed... Entering sleep mode. Far away from here.'],
       ['p','Logic is our best tool, Mechanicus!'],
       ['h','Beep-beep! All patterns and rows are in order again! You are a master of logic, {N}!'],
     ]},
