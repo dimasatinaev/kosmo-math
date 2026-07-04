@@ -317,8 +317,10 @@ const AV = ()=> state.char.g==='f' ? '😺' : '🐱';
 const vb = (m,f)=> state.char.g==='f' ? f : m;          // player verb
 const nvb = (npc,m,f)=> npc.g==='f' ? f : m;            // NPC verb
 
+/* ~3500 XP available across all 50 levels (70 XP per perfect level) —
+   admiral requires nearly the whole galaxy, not just the first world */
 const RANKS = [
-  [0,'Юнга'],[100,'Пилот-стажёр'],[250,'Пилот'],[450,'Штурман'],[700,'Капитан'],[1000,'Адмирал Галактики']
+  [0,'Юнга'],[300,'Пилот-стажёр'],[800,'Пилот'],[1500,'Штурман'],[2400,'Капитан'],[3400,'Адмирал Галактики']
 ];
 function rankInfo(){
   let i = 0;
@@ -414,21 +416,22 @@ function genCount(max, kind){
   return t;
 }
 
-function genCompare(){
-  let a = rnd(1,9), b = rnd(1,9);
+function genCompare(lo, hi){
+  lo = lo||1; hi = hi||9;
+  let a = rnd(lo,hi), b = rnd(lo,hi);
   if (Math.random()<0.2) b = a;
   const i1 = pick(ITEMS); let i2 = pick(ITEMS);
   while (i2===i1) i2 = pick(ITEMS);
   return {
     prompt:'Сравни количество! Выбери правильный знак.',
-    visual:'<div class="grp">'+em(i1.e,a)+'</div><span class="op">?</span><div class="grp">'+em(i2.e,b)+'</div>',
+    visual:'<div class="grp">'+emRows(i1.e,a)+'</div><span class="op">?</span><div class="grp">'+emRows(i2.e,b)+'</div>',
     kind:'choice', options:['>','<','='],
     answer: a>b ? '>' : (a<b ? '<' : '=')
   };
 }
 
-function genBonds(c){
-  const total = rnd(4,10), p = rnd(1,total-1);
+function genBonds(c, maxTotal){
+  const total = rnd(4, maxTotal||10), p = rnd(1,total-1);
   return {
     prompt:c.h.e+' '+c.h.n+' просит помощи: какое число спряталось?',
     visual:'<span class="bignum">'+total+' = '+p+' + </span><span class="gap">?</span>',
@@ -451,8 +454,8 @@ function genAdd(max, c){
   };
 }
 
-function genSub(c){
-  const a = rnd(3,10), b = rnd(1,a-1);
+function genSub(c, maxA){
+  const a = rnd(3, maxA||10), b = rnd(1,a-1);
   const it = pick(ITEMS);
   const tpl = pick([
     N()+' '+vb('взял','взяла')+' в полёт '+a+' '+plural(a,it.f)+'. '+b+' '+vb('он отдал','она отдала')+' друзьям. Сколько осталось?',
@@ -466,8 +469,8 @@ function genSub(c){
   };
 }
 
-function genStory(c){
-  const kind = rnd(1,3);
+function genStory(c, k){
+  const kind = k||rnd(1,3);
   if (kind===1){
     const need = rnd(8,12), a = rnd(1,5), b = rnd(1,5), d = rnd(1,5);
     return {
@@ -499,8 +502,8 @@ function genStory(c){
 }
 
 /* --- Пояс астероидов --- */
-function genCount20(){
-  const n = rnd(11,20);
+function genCount20(lo, hi){
+  const n = rnd(lo||11, hi||20);
   const it = pick([{e:'💎',f:['кристалл','кристалла','кристаллов']},{e:'🪨',f:['камень','камня','камней']}]);
   return {
     prompt:'Ого, целая россыпь! Сосчитай, сколько здесь '+it.f[2]+'. Подсказка: в каждом ряду по 5!',
@@ -508,16 +511,19 @@ function genCount20(){
     kind:'input', answer:String(n)
   };
 }
-function genAddCross(c){
-  const a = rnd(5,9), b = rnd(Math.max(2,11-a), 9);
+function genAddCross(c, big){
+  const a = big ? rnd(6,9) : rnd(5,9);
+  const b = big ? rnd(6,9) : rnd(Math.max(2,11-a), 9);
   return {
     prompt:c.h.e+' '+c.h.n+' и '+N()+' добывают кристаллы: сначала нашли '+a+', потом ещё '+b+'. Сколько всего кристаллов?',
     visual:'<div class="grp">'+emRows('💎',a)+'</div><span class="op">+</span><div class="grp">'+emRows('💎',b)+'</div>',
     kind:'input', answer:String(a+b)
   };
 }
-function genTwoStep(c){
-  const a = rnd(3,6), b = rnd(1,4), d = rnd(1, Math.min(a+b-1, 5));
+function genTwoStep(c, big){
+  const a = big ? rnd(5,9) : rnd(3,6);
+  const b = big ? rnd(3,6) : rnd(1,4);
+  const d = big ? rnd(2, Math.min(a+b-1, 7)) : rnd(1, Math.min(a+b-1, 5));
   return {
     prompt:N()+' и '+c.h.n+' собрали сначала '+a+' '+plural(a,['звезду','звезды','звёзд'])+', потом ещё '+b+
       '. Но '+c.v.e+' '+c.v.n+' '+nvb(c.v,'утащил','утащила')+' '+d+'! Сколько звёзд осталось?',
@@ -528,9 +534,10 @@ function genTwoStep(c){
 }
 
 /* --- Планета роботов --- */
-function genSeq(){
-  const d = pick([1,2]), asc = Math.random()<0.7;
-  let start = asc ? rnd(0,8) : rnd(8,16);
+function genSeq(steps, dir){
+  const d = pick(steps||[1,2]);
+  const asc = dir==='desc' ? false : (dir==='asc' ? true : Math.random()<0.7);
+  let start = asc ? rnd(0, 20-4*d) : rnd(4*d, 20);
   const seq = [];
   for (let i=0;i<4;i++) seq.push(asc ? start+d*i : start-d*i);
   const ans = asc ? start+d*4 : start-d*4;
@@ -542,10 +549,10 @@ function genSeq(){
     kind:'choice', options:shuffle([...opts]).map(String), answer:String(ans)
   };
 }
-function genShapePattern(){
+function genShapePattern(pl){
   const shapes = shuffle(['🔴','🔵','🟡','🟢','🔺','🟣','⬛','⭐']);
-  const p = shapes.slice(0, pick([2,3]));
-  const len = p.length===2 ? 6 : 6;
+  const p = shapes.slice(0, pick(pl||[2,3]));
+  const len = 6;
   let seq = '';
   for (let i=0;i<len;i++) seq += p[i%p.length]+' ';
   const ans = p[len%p.length];
@@ -576,18 +583,26 @@ function genOddOne(){
 }
 
 /* --- Туманность времени --- */
-function genClock(){
-  const h = rnd(1,9), d = rnd(1,3);
+function genClock(mode){
+  if (mode==='back'){
+    const h = rnd(4,11), d = rnd(1,3);
+    return {
+      prompt:'Часы показывают '+h+' '+plural(h,['час','часа','часов'])+'. Сколько было '+d+' '+plural(d,['час','часа','часов'])+' назад?',
+      visual:'<span style="font-size:56px">🕐</span><br><span class="bignum">'+h+' − '+d+' = </span><span class="gap">?</span>',
+      kind:'input', answer:String(h-d)
+    };
+  }
+  const h = rnd(1,9), d = mode==='fwd1' ? 1 : rnd(2,3);
   return {
     prompt:'Часы показывают '+h+' '+plural(h,['час','часа','часов'])+'. Сколько будет через '+d+' '+plural(d,['час','часа','часов'])+'?',
     visual:'<span style="font-size:56px">🕐</span><br><span class="bignum">'+h+' + '+d+' = </span><span class="gap">?</span>',
     kind:'input', answer:String(h+d)
   };
 }
-function genDays(){
+function genDays(mode){
   const DAYS = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
   const i = rnd(0,6);
-  const tomorrow = Math.random()<0.6;
+  const tomorrow = mode==='tomorrow' ? true : mode==='yesterday' ? false : Math.random()<0.6;
   const ans = tomorrow ? DAYS[(i+1)%7] : DAYS[(i+6)%7];
   const opts = new Set([ans]);
   while (opts.size<3) opts.add(DAYS[rnd(0,6)]);
@@ -597,11 +612,14 @@ function genDays(){
     kind:'choice', options:shuffle([...opts]), answer:ans
   };
 }
-function genMoney(c){
+function genMoney(c, cnts){
   const denoms = [1,2,5,10];
-  const cnt = pick([2,2,3]);
-  const coins = []; let sum = 0;
-  for (let i=0;i<cnt;i++){ const d = pick(denoms); coins.push(d); sum += d; }
+  const cnt = pick(cnts||[2,2,3]);
+  let coins, sum;
+  do {
+    coins = []; sum = 0;
+    for (let i=0;i<cnt;i++){ const d = pick(denoms); coins.push(d); sum += d; }
+  } while (sum > 20);
   return {
     prompt:c.h.e+' '+c.h.n+' даёт монетки на космо-мороженое. Сколько всего рублей?',
     visual:coins.map(d=>'<span class="coin">'+d+'</span>').join(''),
@@ -623,13 +641,18 @@ const WORLDS = [
     ],
     levels:[
       { title:'Учимся считать',    icon:'🐣', gen:c=>genCount(5,'choice') },
-      { title:'Считаем до 10',     icon:'🔟', gen:c=>genCount(10,'input') },
-      { title:'Больше или меньше', icon:'⚖️', gen:c=>genCompare() },
-      { title:'Состав числа',      icon:'🧩', gen:c=>genBonds(c) },
+      { title:'Считаем до 7',      icon:'🐥', gen:c=>genCount(7,'choice') },
+      { title:'Счёт до 10',        icon:'🔟', gen:c=>genCount(10,'input') },
+      { title:'Кто больше?',       icon:'🐘', gen:c=>genCompare(1,5) },
+      { title:'Больше или меньше', icon:'⚖️', gen:c=>genCompare(1,9) },
+      { title:'Прятки чисел',      icon:'🙈', gen:c=>genBonds(c,6) },
+      { title:'Состав числа',      icon:'🧩', gen:c=>genBonds(c,10) },
+      { title:'Быстрый счёт',      icon:'⚡', gen:c=>pick([()=>genCount(10,'input'),()=>genCompare(1,9),()=>genBonds(c,10)])() },
+      { title:'Испытание Карки',   icon:'🐦‍⬛', boss:true, gen:c=>pick([()=>genCount(10,'input'),()=>genCompare(1,9),()=>genBonds(c,10)])() },
     ]
   },
   {
-    name:'Луна', icon:'🌙', gate:8,
+    name:'Луна', icon:'🌙', gate:18,
     tint:'linear-gradient(180deg, rgba(190,190,215,.20), rgba(90,90,120,.12))',
     deco:['🌑','🪨','⭐','🕳️'],
     cast:{ h:{n:'лунный заяц Луня', e:'🐰', g:'m'}, v:{n:'метеорит Бум', e:'☄️', g:'m'} },
@@ -639,14 +662,19 @@ const WORLDS = [
       ['p','Плюс и минус нас не подведут. Летим, Луня!'],
     ],
     levels:[
-      { title:'Сложение',       icon:'➕', gen:c=>genAdd(10,c) },
-      { title:'Вычитание',      icon:'➖', gen:c=>genSub(c) },
-      { title:'Задачи-истории', icon:'📖', gen:c=>genStory(c) },
-      { title:'Испытание Бума', icon:'💥', boss:true, gen:c=>pick([()=>genAdd(10,c),()=>genSub(c),()=>genStory(c)])() },
+      { title:'Сложение до 5',      icon:'➕', gen:c=>genAdd(5,c) },
+      { title:'Сложение до 10',     icon:'✨', gen:c=>genAdd(10,c) },
+      { title:'Вычитание',          icon:'➖', gen:c=>genSub(c,6) },
+      { title:'Вычитание до 10',    icon:'🌒', gen:c=>genSub(c,10) },
+      { title:'Плюс или минус?',    icon:'🎲', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10)])() },
+      { title:'Задачи-истории',     icon:'📖', gen:c=>genStory(c) },
+      { title:'Энергия для прыжка', icon:'🔋', gen:c=>genStory(c,1) },
+      { title:'Лунная тренировка',  icon:'🌙', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genStory(c)])() },
+      { title:'Испытание Бума',     icon:'💥', boss:true, gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genStory(c)])() },
     ]
   },
   {
-    name:'Пояс астероидов', icon:'☄️', gate:18,
+    name:'Пояс астероидов', icon:'☄️', gate:38,
     tint:'linear-gradient(180deg, rgba(220,150,80,.20), rgba(140,80,40,.12))',
     deco:['🪨','💎','✨','🛰️'],
     cast:{ h:{n:'инопланетянин Зюм', e:'👽', g:'m'}, v:{n:'пират Крыс', e:'🏴‍☠️', g:'m'} },
@@ -656,14 +684,18 @@ const WORLDS = [
       ['p','Сокровища достаются тем, кто умеет считать до 20. За дело!'],
     ],
     levels:[
-      { title:'Считаем до 20',  icon:'💎', gen:c=>genCount20() },
-      { title:'Через десяток',  icon:'🚀', gen:c=>genAddCross(c) },
-      { title:'Два действия',   icon:'🎯', gen:c=>genTwoStep(c) },
-      { title:'Проверка Крыса', icon:'🏴‍☠️', boss:true, gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c),()=>genCount20()])() },
+      { title:'Считаем до 15',         icon:'💎', gen:c=>genCount20(11,15) },
+      { title:'Считаем до 20',         icon:'🪨', gen:c=>genCount20(15,20) },
+      { title:'Через десяток',         icon:'🚀', gen:c=>genAddCross(c) },
+      { title:'Большие суммы',         icon:'💥', gen:c=>genAddCross(c,true) },
+      { title:'Два действия',          icon:'🎯', gen:c=>genTwoStep(c) },
+      { title:'Два действия: сложнее', icon:'🌪️', gen:c=>genTwoStep(c,true) },
+      { title:'Сравни сокровища',      icon:'⚖️', gen:c=>genCompare(8,20) },
+      { title:'Проверка Крыса',        icon:'🏴‍☠️', boss:true, gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c,true),()=>genCount20(11,20)])() },
     ]
   },
   {
-    name:'Планета роботов', icon:'🤖', gate:28,
+    name:'Планета роботов', icon:'🤖', gate:56,
     tint:'linear-gradient(180deg, rgba(80,170,230,.20), rgba(40,90,140,.12))',
     deco:['⚙️','🔩','💡','🔌'],
     cast:{ h:{n:'роботёнок Винтик', e:'🤖', g:'m'}, v:{n:'Механикус', e:'🦾', g:'m'} },
@@ -673,14 +705,18 @@ const WORLDS = [
       ['p','Мы обожаем загадки! Начинаем, Винтик!'],
     ],
     levels:[
-      { title:'Продолжи ряд',        icon:'🔢', gen:c=>genSeq() },
-      { title:'Узоры из фигур',      icon:'🔷', gen:c=>genShapePattern() },
-      { title:'Найди лишнее',        icon:'🔍', gen:c=>genOddOne() },
-      { title:'Экзамен Механикуса',  icon:'🦾', boss:true, gen:c=>pick([genSeq,genShapePattern,genOddOne])() },
+      { title:'Продолжи ряд',       icon:'🔢', gen:c=>genSeq([1,2],'asc') },
+      { title:'Ряды наоборот',      icon:'🔁', gen:c=>genSeq([1,2],'desc') },
+      { title:'Прыжки через 2 и 3', icon:'🦘', gen:c=>genSeq([2,3]) },
+      { title:'Узоры из фигур',     icon:'🔷', gen:c=>genShapePattern([2]) },
+      { title:'Сложные узоры',      icon:'💠', gen:c=>genShapePattern([3]) },
+      { title:'Найди лишнее',       icon:'🔍', gen:c=>genOddOne() },
+      { title:'Логика Винтика',     icon:'💡', gen:c=>pick([()=>genSeq([1,2,3]),()=>genShapePattern([2,3]),()=>genOddOne()])() },
+      { title:'Экзамен Механикуса', icon:'🦾', boss:true, gen:c=>pick([()=>genSeq([2,3]),()=>genShapePattern([3]),()=>genOddOne()])() },
     ]
   },
   {
-    name:'Туманность времени', icon:'⏰', gate:38,
+    name:'Туманность времени', icon:'⏰', gate:74,
     tint:'linear-gradient(180deg, rgba(190,120,230,.20), rgba(100,60,140,.12))',
     deco:['🕐','📅','⏳','🌌'],
     cast:{ h:{n:'сова Умница', e:'🦉', g:'f'}, v:{n:'хранитель Тик-Так', e:'⏱️', g:'m'} },
@@ -690,14 +726,19 @@ const WORLDS = [
       ['p','Времени зря не теряем — за дело!'],
     ],
     levels:[
-      { title:'Который час?',      icon:'🕒', gen:c=>genClock() },
-      { title:'Дни недели',        icon:'📅', gen:c=>genDays() },
-      { title:'Монетки',           icon:'🪙', gen:c=>genMoney(c) },
-      { title:'Загадки Тик-Така',  icon:'⏱️', boss:true, gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c)])() },
+      { title:'Который час?',     icon:'🕒', gen:c=>genClock('fwd1') },
+      { title:'Часы вперёд',      icon:'⏩', gen:c=>genClock('fwd') },
+      { title:'Час назад',        icon:'⏪', gen:c=>genClock('back') },
+      { title:'Что будет завтра?',icon:'📅', gen:c=>genDays('tomorrow') },
+      { title:'Что было вчера?',  icon:'🗓️', gen:c=>genDays('yesterday') },
+      { title:'Монетки',          icon:'🪙', gen:c=>genMoney(c,[2]) },
+      { title:'Копилка',          icon:'🐷', gen:c=>genMoney(c,[3,4]) },
+      { title:'Микс Умницы',      icon:'🦉', gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c,[2,3])])() },
+      { title:'Загадки Тик-Така', icon:'⏱️', boss:true, gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c,[3,4])])() },
     ]
   },
   {
-    name:'Дальний космос', icon:'🔭', gate:48,
+    name:'Дальний космос', icon:'🔭', gate:95,
     tint:'linear-gradient(180deg, rgba(60,60,140,.30), rgba(20,20,60,.20))',
     deco:['🌠','🌀','🛸','🌟'],
     cast:{ h:{n:'капитан Галактион', e:'👨‍🚀', g:'m'}, v:{n:'чёрная дыра Мгла', e:'🕳️', g:'f'} },
@@ -707,10 +748,13 @@ const WORLDS = [
       ['p','Мы не боимся темноты. Полный вперёд!'],
     ],
     levels:[
-      { title:'Смешанные задачи', icon:'🌟', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c),()=>genCompare()])() },
-      { title:'Гипер-задачи',     icon:'🚀', gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c)])() },
-      { title:'Задачи-истории',   icon:'📖', gen:c=>genStory(c) },
-      { title:'Испытание Мглы',   icon:'🕳️', boss:true, gen:c=>pick([()=>genTwoStep(c),()=>genStory(c),()=>genAddCross(c)])() },
+      { title:'Смешанные задачи',  icon:'🌟', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genCompare(1,9)])() },
+      { title:'Гипер-задачи',      icon:'🚀', gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c)])() },
+      { title:'Задачи-истории',    icon:'📖', gen:c=>genStory(c) },
+      { title:'Большие ряды',      icon:'🔢', gen:c=>genSeq([2,3]) },
+      { title:'Два действия: макс',icon:'🌀', gen:c=>genTwoStep(c,true) },
+      { title:'Всё до 20',         icon:'💫', gen:c=>pick([()=>genCount20(11,20),()=>genAddCross(c,true),()=>genCompare(8,20)])() },
+      { title:'Испытание Мглы',    icon:'🕳️', boss:true, gen:c=>pick([()=>genTwoStep(c,true),()=>genStory(c),()=>genAddCross(c,true),()=>genSeq([2,3])])() },
     ]
   },
 ];
