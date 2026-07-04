@@ -247,6 +247,13 @@
   .npc-pill.h .npc-em { background:#f6f1ff; }
   .npc-pill.v { background:#ffddd8; color:#c0392b; }
   .npc-pill.v .npc-em { background:#fff2ef; }
+  .npc-pill.gone { filter:grayscale(.75); opacity:.6; text-decoration:line-through; }
+  .fly-away { display:inline-block;
+    animation:flyAway 2s ease-in forwards; }
+  @keyframes flyAway {
+    0%   { transform:translate(0,0) scale(1) rotate(0deg); opacity:1; }
+    100% { transform:translate(55vw,-65vh) scale(.15) rotate(35deg); opacity:0; }
+  }
   .world-gate { font-size:15px; color:#ffd76e; margin-top:4px; }
   .deco { position:absolute; font-size:24px; opacity:.35; z-index:0; pointer-events:none; }
   .world-locked-body { text-align:center; padding:20px 12px 26px; position:relative; z-index:2; }
@@ -480,6 +487,7 @@ try {
 if (!state.char) state.char = { g:'f', name:'Ника' };
 if (state.sound === undefined) state.sound = true;
 if (!state.intros) state.intros = {};
+if (!state.outros) state.outros = {};
 if (!state.lang) state.lang = 'ru';
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -1088,9 +1096,74 @@ const WORLDS = [
 const TASKS_PER_LEVEL = 5;
 const MAX_STARS = WORLDS.reduce((s,w)=> s + w.levels.length*3, 0);
 
+/* world-clear outro dialogs: villain gives up, hero + helper celebrate */
+const OUTROS = [
+  { ru:[
+      ['v','Кар-р! Ну и пусть! Вы всё сосчитали без единой ошибки... Улетаю на другую планету!'],
+      ['p','Счёт до десяти — наша суперсила! Прощай, Карка!'],
+      ['h','Мяу! Спасибо, {N}! Теперь на Родной планете полный порядок. Прилетай в гости!'],
+    ],
+    en:[
+      ['v','Caw-caw! Fine! You counted everything without a single mistake... I am flying to another planet!'],
+      ['p','Counting to ten is our superpower! Farewell, Karka!'],
+      ['h','Meow! Thank you, {N}! Home Planet is all tidy now. Come visit anytime!'],
+    ]},
+  { ru:[
+      ['v','БУМ-М... Не разбил ни одного примера! Полечу искать планету полегче...'],
+      ['p','Плюс и минус победили, Бум!'],
+      ['h','Урра! Мои лунные камушки в безопасности. Ты — настоящий друг Луны, {N}!'],
+    ],
+    en:[
+      ['v','BOO-OM... I could not smash a single sum! I will go find an easier planet...'],
+      ['p','Plus and minus have won, Boom!'],
+      ['h','Hooray! My moon pebbles are safe. You are a true friend of the Moon, {N}!'],
+    ]},
+  { ru:[
+      ['v','Йо-хо... нет! Вы сосчитали все кристаллы до единого! Поднимаю белый флаг и уплываю!'],
+      ['p','Сокровища достаются тем, кто дружит с математикой!'],
+      ['h','Зюм-зюм! Кристаллы спасены! Ты — почётный собиратель пояса астероидов, {N}!'],
+    ],
+    en:[
+      ['v','Yo-ho... no! You counted every single crystal! I raise the white flag and sail away!'],
+      ['p','Treasures go to those who are friends with math!'],
+      ['h','Zyum-zyum! The crystals are saved! You are an honorary collector of the Asteroid Belt, {N}!'],
+    ]},
+  { ru:[
+      ['v','Экзамен... сдан. На отлично. Моя логика больше не нужна... Ухожу в спящий режим. Далеко отсюда.'],
+      ['p','Логика — наш лучший инструмент, Механикус!'],
+      ['h','Бип-бип! Все узоры и ряды снова по порядку! Ты — мастер логики, {N}!'],
+    ],
+    en:[
+      ['v','Exam... passed. With honors. My logic is no longer needed... Entering sleep mode. Far away from here.'],
+      ['p','Logic is our best tool, Mechanicus!'],
+      ['h','Beep-beep! All patterns and rows are in order again! You are a master of logic, {N}!'],
+    ]},
+  { ru:[
+      ['v','Тик-так... время вышло. Моё время! Все загадки разгаданы... Исчезаю в другую туманность!'],
+      ['p','Мы дружим со временем — нас не запутать!'],
+      ['h','Уху! Часы идут, дни на месте, монетки сосчитаны. Мудрая работа, {N}!'],
+    ],
+    en:[
+      ['v','Tick-tock... time is up. MY time! All riddles are solved... I vanish into another nebula!'],
+      ['p','We are friends with time — you cannot confuse us!'],
+      ['h','Hoo-hoo! The clocks are ticking, the days are in place, the coins are counted. Wise work, {N}!'],
+    ]},
+  { ru:[
+      ['v','Не может быть... Правильные ответы не исчезают во мне! Я... растворяюсь...'],
+      ['p','Даже чёрная дыра не спорит с математикой!'],
+      ['h','Капитан Галактион докладывает: галактика в безопасности! Ты — настоящая легенда, {N}!'],
+    ],
+    en:[
+      ['v','Impossible... Correct answers do not disappear inside me! I am... dissolving...'],
+      ['p','Even a black hole cannot argue with math!'],
+      ['h','Captain Galaktion reporting: the galaxy is safe! You are a true legend, {N}!'],
+    ]},
+];
+
 const sKey = (wi,li)=> wi+'-'+li;
 const lvlStars = (wi,li)=> state.levelStars[sKey(wi,li)]||0;
 const worldOpen = wi => totalStars() >= WORLDS[wi].gate;
+const worldCleared = wi => WORLDS[wi].levels.every((_,li)=> lvlStars(wi,li)===3);
 function levelOpen(wi,li){ return worldOpen(wi) && (li===0 || lvlStars(wi,li-1)>0); }
 function openWorldsCount(){ return WORLDS.filter((w,i)=>worldOpen(i)).length; }
 
@@ -1218,13 +1291,19 @@ function renderHome(){
   WORLDS.forEach((w, wi)=>{
     const open = worldOpen(wi);
     const deco = w.deco.map((d,i)=>'<span class="deco" style="'+DECO_POS[i%4]+'">'+d+'</span>').join('');
+    const cleared = !!state.outros[wi];
     html += '<div class="world" style="background:'+w.tint+'">'+deco+
-      '<div class="world-head"><h2>'+w.icon+' '+w.name[LANG()]+'</h2>';
+      '<div class="world-head"><h2>'+w.icon+' '+w.name[LANG()]+(cleared?' ✨':'')+'</h2>';
     if (open){
       html += '<div class="world-npc">'+
-        '<span class="npc-pill h">'+hn(w.cast)+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
-        tr(' ждёт помощи · берегись: ', ' needs your help · beware of ')+
-        '<span class="npc-pill v">'+vn(w.cast)+' <span class="npc-em">'+w.cast.v.e+'</span></span>!'+
+        (cleared
+          ? '<span class="npc-pill h">'+hn(w.cast)+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
+            tr(' празднует победу · ', ' celebrates victory · ')+
+            '<span class="npc-pill v gone">'+vn(w.cast)+' <span class="npc-em">'+w.cast.v.e+'</span></span>'+
+            tr(' '+nvb(w.cast.v,'улетел','улетела')+'! 🌟', ' flew away! 🌟')
+          : '<span class="npc-pill h">'+hn(w.cast)+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
+            tr(' ждёт помощи · берегись: ', ' needs your help · beware of ')+
+            '<span class="npc-pill v">'+vn(w.cast)+' <span class="npc-em">'+w.cast.v.e+'</span></span>!')+
         '</div></div>';
       html += '<div class="path">';
       w.levels.forEach((L, li)=>{
@@ -1318,7 +1397,7 @@ function closeCharCard(){
 
 function resetProgress(){
   if (confirm(tr('Точно начать сначала?','Really start over?'))){
-    state = { xp:0, levelStars:{}, char:state.char, sound:state.sound, intros:{}, lang:state.lang };
+    state = { xp:0, levelStars:{}, char:state.char, sound:state.sound, intros:{}, outros:{}, lang:state.lang };
     save(); renderHome();
   }
 }
@@ -1469,6 +1548,8 @@ function enterSaveCode(){
     if (typeof s.xp !== 'number' || !s.levelStars || !s.char) throw new Error('bad');
     state = s;
     if (!state.intros) state.intros = {};
+    if (!state.outros) state.outros = {};
+    if (!state.lang) state.lang = 'ru';
     if (state.sound === undefined) state.sound = true;
     save(); sndWin(); buildNav(); renderHome();
   } catch(e){
@@ -1525,6 +1606,53 @@ function renderIntro(wi, li, idx){
   speak(whoName+'. '+text);   // auto-read the dialog line (tap the bubble to replay)
 }
 function introDone(wi, li){ state.intros[wi] = true; save(); beginLevel(wi, li); }
+
+/* ---------- world-clear outro ---------- */
+function renderOutro(wi, idx){
+  setChrome('task');
+  sndClick();
+  const W = WORLDS[wi];
+  const lines = OUTROS[wi][LANG()];
+  const line = lines[idx];
+  const whoName = line[0]==='h' ? hn(W.cast)
+                : line[0]==='v' ? vn(W.cast)
+                : T()+' '+N();
+  const whoE = line[0]==='h' ? W.cast.h.e : line[0]==='v' ? W.cast.v.e : AV();
+  const text = line[1].replace(/\{N\}/g, N());
+  const last = idx === lines.length - 1;
+  const dots = lines.map((_,i)=> i===idx?'●':'○').join(' ');
+  const speaker = line[0]==='p'
+    ? '<img class="speaker-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
+    : '<span class="speaker">'+whoE+'</span>';
+  app.innerHTML =
+    '<div class="intro-scene">'+
+    '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+' ✨</div>'+
+    speaker+
+    '<div class="bubble'+(line[0]==='v'?' villain':'')+'" onclick="speak(this.textContent, true)">'+
+      '<span class="who">'+whoName+(ttsOk()?' 🔊':'')+'</span>'+text+'</div>'+
+    '<button class="btn-next" onclick="'+
+      (last ? 'outroDone('+wi+')' : 'renderOutro('+wi+','+(idx+1)+')')+'">'+
+      (last ? tr('Прощай! 👋','Farewell! 👋') : tr('Дальше ➜','Next ➜'))+'</button>'+
+    '<div class="intro-dots">'+dots+'</div>'+
+    '</div>';
+  if (line[0]==='v') beep(180,.25,0,'sawtooth',.05);
+  speak(whoName+'. '+text);
+}
+function outroDone(wi){
+  state.outros[wi] = true; save();
+  const W = WORLDS[wi];
+  sndWin();
+  confetti(); setTimeout(confetti, 600);
+  app.innerHTML =
+    '<div class="intro-scene">'+
+    '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+' ✨</div>'+
+    '<span class="speaker fly-away">'+W.cast.v.e+'</span>'+
+    '<div class="char-sub" style="font-size:18px;margin-top:20px">'+
+      tr(vn(W.cast)+' улетает всё дальше и дальше...', vn(W.cast)+' flies away, farther and farther...')+'<br>'+
+      tr('Мир очищен! 🌟','World cleared! 🌟')+'</div>'+
+    '</div>';
+  setTimeout(renderHome, 2200);
+}
 
 /* ---------- level play ---------- */
 let cur = null;
@@ -1643,6 +1771,7 @@ function finishLevel(){
   save();
   const newWorld = openWorldsCount() > worldsBefore
     ? WORLDS[openWorldsCount()-1] : null;
+  const clearedNow = worldCleared(cur.wi) && !state.outros[cur.wi];
   const rankNow = rankInfo().name;
   const rankUp = rankNow !== cur.rankBefore;
   sndWin();
@@ -1662,7 +1791,12 @@ function finishLevel(){
     (newWorld ? '<div class="unlock-banner">'+
       tr('🎉 Открыт новый мир: <b>'+newWorld.icon+' '+newWorld.name[LANG()]+'</b>!',
          '🎉 New world unlocked: <b>'+newWorld.icon+' '+newWorld.name[LANG()]+'</b>!')+'</div>' : '')+
-    '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>'+
+    (clearedNow ? '<div class="unlock-banner">'+
+      tr('🌟 Все звёзды мира собраны! Кажется, '+vn(WORLDS[cur.wi].cast)+' хочет что-то сказать...',
+         '🌟 All the stars of this world are collected! Looks like '+vn(WORLDS[cur.wi].cast)+' has something to say...')+'</div>' : '')+
+    (clearedNow
+      ? '<button class="btn-next" onclick="renderOutro('+cur.wi+',0)">'+tr('Дальше ✨','Continue ✨')+'</button>'
+      : '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>')+
     '</div>';
 }
 
