@@ -163,7 +163,20 @@
   }
   .world-head { text-align:center; padding:16px 12px 4px; position:relative; z-index:2; }
   .world-head h2 { font-size:22px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
-  .world-npc { font-size:13px; opacity:.85; margin-top:3px; }
+  .world-npc { font-size:13px; opacity:.95; margin-top:8px; line-height:2; }
+  .npc-pill {
+    display:inline-flex; align-items:center; gap:6px; vertical-align:middle;
+    padding:2px 4px 2px 12px; border-radius:999px; font-size:13px; font-weight:bold;
+    box-shadow:0 2px 6px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  .npc-pill .npc-em {
+    font-size:17px; width:27px; height:27px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .npc-pill.h { background:#e6dcff; color:#6a3fd4; }
+  .npc-pill.h .npc-em { background:#f6f1ff; }
+  .npc-pill.v { background:#ffddd8; color:#c0392b; }
+  .npc-pill.v .npc-em { background:#fff2ef; }
   .world-gate { font-size:15px; color:#ffd76e; margin-top:4px; }
   .deco { position:absolute; font-size:24px; opacity:.35; z-index:0; pointer-events:none; }
   .world-locked-body { text-align:center; padding:20px 12px 26px; position:relative; z-index:2; }
@@ -749,7 +762,7 @@ const WORLDS = [
     name:'Родная планета', icon:'🏡', gate:0,
     tint:'linear-gradient(180deg, rgba(90,200,120,.22), rgba(40,120,70,.12))',
     deco:['🌳','🌸','🍄','🦋'],
-    cast:{ h:{n:'котёнок Пуша', e:'🐾', g:'m'}, v:{n:'ворона Карка', e:'🐦‍⬛', g:'f'} },
+    cast:{ h:{n:'котёнок Пуша', e:'🐱', g:'m'}, v:{n:'ворона Карка', e:'🐦‍⬛', g:'f'} },
     intro:[
       ['h','Мяу! Привет, {N}! Я котёнок Пуша. На нашей планете столько всего интересного — помоги мне всё сосчитать!'],
       ['v','Кар-р-р! А я ворона Карка! Я всё перепутаю, и вы собьётесь со счёта!'],
@@ -999,7 +1012,11 @@ function renderHome(){
     html += '<div class="world" style="background:'+w.tint+'">'+deco+
       '<div class="world-head"><h2>'+w.icon+' '+w.name+'</h2>';
     if (open){
-      html += '<div class="world-npc">'+w.cast.h.e+' '+w.cast.h.n+' ждёт помощи · берегись: '+w.cast.v.e+' '+w.cast.v.n+'!</div></div>';
+      html += '<div class="world-npc">'+
+        '<span class="npc-pill h">'+w.cast.h.n+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
+        ' ждёт помощи · берегись: '+
+        '<span class="npc-pill v">'+w.cast.v.n+' <span class="npc-em">'+w.cast.v.e+'</span></span>!'+
+        '</div></div>';
       html += '<div class="path">';
       w.levels.forEach((L, li)=>{
         const stars = lvlStars(wi,li);
