@@ -166,6 +166,8 @@
 
   .reset { display:block; margin:24px auto 0; background:none; border:none; color:rgba(255,255,255,.45);
     font-family:inherit; font-size:12px; cursor:pointer; text-decoration:underline; }
+  .legal { text-align:center; margin-top:14px; font-size:11px; color:rgba(255,255,255,.35); }
+  .legal a { color:rgba(255,255,255,.5); }
 
   /* ---------- character screen ---------- */
   .char-title { text-align:center; font-size:24px; margin:14px 0 4px; color:#ffd76e; }
@@ -939,6 +941,7 @@ function renderHome(){
   html += '</div>';
 
   html += '<button class="reset" onclick="resetProgress()">сбросить прогресс</button>';
+  html += '<div class="legal">© 2026 Dmitrii Satinaev · <a href="about.html">о приложении</a></div>';
   app.innerHTML = html;
 }
 

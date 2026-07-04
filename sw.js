@@ -1,10 +1,11 @@
 /* Космоматематика — service worker: offline play, cache-first */
-const CACHE = 'kosmomath-v2';
+const CACHE = 'kosmomath-v3';
 const CHARS = ['Nika','Kogot'];
 const RANKS = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
 const ASSETS = [
   '.',
   'index.html',
+  'about.html',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
