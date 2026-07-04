@@ -1,5 +1,5 @@
 /* Космоматематика — service worker: offline play, cache-first */
-const CACHE = 'kosmomath-v4';
+const CACHE = 'kosmomath-v5';
 const CHARS = ['Nika','Kogot'];
 const RANKS = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
 const ASSETS = [
@@ -11,7 +11,7 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
 ].concat(
-  CHARS.flatMap(c => RANKS.map(r => 'characters/web/'+c+'_'+r+'_transparent.png'))
+  CHARS.flatMap(c => RANKS.map(r => 'characters/web/'+c+'_'+r+'_3d.png'))
 );
 
 self.addEventListener('install', e => {

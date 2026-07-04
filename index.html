@@ -63,33 +63,40 @@
     position:relative;
     background:linear-gradient(160deg, rgba(255,255,255,.11), rgba(255,255,255,.04));
     border:1px solid rgba(255,255,255,.18);
-    border-radius:26px; padding:16px; display:flex; gap:16px; align-items:center;
+    border-radius:26px; padding:16px; display:flex; gap:16px; align-items:stretch;
     backdrop-filter:blur(8px); margin-bottom:22px;
     box-shadow:0 16px 40px rgba(0,0,0,.35), 0 0 60px rgba(120,80,230,.15),
       inset 0 1px 0 rgba(255,255,255,.14);
   }
-  .avatar {
-    width:72px; height:72px; border-radius:50%; flex-shrink:0;
-    background:radial-gradient(circle at 30% 30%,#ffd76e,#ff9040);
-    display:flex; align-items:center; justify-content:center; font-size:40px;
-    box-shadow:0 0 18px rgba(255,190,80,.55);
+  /* bordered rounded avatar (opaque 3d art, head crop) */
+  .avatar3d {
+    flex-shrink:0; align-self:stretch; width:118px; min-height:140px;
+    border-radius:22px; border:2px solid rgba(160,120,255,.45);
+    background-size:230%; background-position:50% 8%; background-repeat:no-repeat;
+    background-color:#f2eef6;
+    box-shadow:0 10px 24px rgba(0,0,0,.4), 0 0 20px rgba(120,80,230,.25);
   }
-  .avatar.girl { background:radial-gradient(circle at 30% 30%,#ff9ecf,#d94f92);
-    box-shadow:0 0 18px rgba(255,130,190,.55); }
-  /* free-standing transparent character, no container */
-  .avatar.face {
-    background-color:transparent; box-shadow:none; border-radius:0;
-    background-size:contain, 100% 100%;
-    background-position:center bottom, center;
-    background-repeat:no-repeat;
-    width:106px; height:122px;
-    filter:drop-shadow(0 10px 16px rgba(0,0,0,.5));
+  .avatar3d.girl { border-color:rgba(255,158,207,.55);
+    box-shadow:0 10px 24px rgba(0,0,0,.4), 0 0 20px rgba(255,130,190,.3); }
+  .hero-info { flex:1; min-width:0; }
+  .rank-pill {
+    display:inline-flex; align-items:center; gap:5px; vertical-align:middle;
+    background:linear-gradient(180deg,#6a3fe0,#5a34c9); color:#fff;
+    padding:3px 13px; border-radius:999px; font-size:13px; font-weight:bold;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 3px 8px rgba(0,0,0,.25);
   }
-  .char-full { height:140px; display:block; margin:0 auto 8px;
-    filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
-  .speaker-img { height:130px; display:block; margin:10px auto 4px; animation:pop .4s;
-    filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
-  .rankup-img { height:150px; display:block; margin:4px auto; }
+  .xprow { display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-size:12px; margin:10px 0 6px; opacity:.92; }
+  .hero-sep { border-top:1px solid rgba(255,255,255,.14); margin:12px 0 8px; }
+  .char-full { width:100%; max-width:150px; height:auto; display:block; margin:0 auto 8px;
+    border-radius:18px; border:2px solid rgba(255,255,255,.3);
+    box-shadow:0 8px 20px rgba(0,0,0,.35); }
+  .speaker-img { width:130px; height:130px; display:block; margin:10px auto 4px; animation:pop .4s;
+    border-radius:22px; border:2px solid rgba(255,255,255,.35);
+    box-shadow:0 10px 24px rgba(0,0,0,.4); object-fit:cover; }
+  .rankup-img { width:150px; height:150px; display:block; margin:4px auto;
+    border-radius:20px; border:2px solid #ffd76e; object-fit:cover;
+    box-shadow:0 8px 20px rgba(255,179,64,.3); }
   .hero h1 { font-size:26px; margin-bottom:0; padding-right:40px;
     text-shadow:0 2px 8px rgba(0,0,0,.4); }
   .rank { font-size:13px; color:#ffd76e; margin-bottom:8px; opacity:.95; }
@@ -157,16 +164,16 @@
 
   /* ---------- worlds ---------- */
   .world {
-    position:relative; border-radius:28px; margin-bottom:26px; overflow:hidden;
-    border:1px solid rgba(255,255,255,.16); padding-bottom:10px;
+    position:relative; border-radius:28px; margin-bottom:0; overflow:hidden;
+    border:1px solid rgba(255,255,255,.16); padding-bottom:8px;
     box-shadow:0 16px 40px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10);
   }
-  .world-head { text-align:center; padding:16px 12px 4px; position:relative; z-index:2; }
+  .world-head { text-align:center; padding:14px 6px 2px; position:relative; z-index:2; }
   .world-head h2 { font-size:22px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
-  .world-npc { font-size:13px; opacity:.95; margin-top:8px; line-height:2; }
+  .world-npc { font-size:12.5px; opacity:.95; margin-top:6px; line-height:1.9; padding:0 4px; }
   .npc-pill {
-    display:inline-flex; align-items:center; gap:6px; vertical-align:middle;
-    padding:2px 4px 2px 12px; border-radius:999px; font-size:13px; font-weight:bold;
+    display:inline-flex; align-items:center; gap:5px; vertical-align:middle;
+    padding:2px 3px 2px 10px; border-radius:999px; font-size:12.5px; font-weight:bold;
     box-shadow:0 2px 6px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.6);
   }
   .npc-pill .npc-em {
@@ -184,11 +191,16 @@
 
   /* ---------- level path ---------- */
   .map { position:relative; }
-  .map::before {   /* one continuous dashed line through the whole map */
-    content:''; position:absolute; top:70px; bottom:90px; left:50%;
-    border-left:4px dashed rgba(255,255,255,.3); transform:translateX(-2px); z-index:0;
+  .connector {   /* solid link between world cards */
+    width:5px; height:30px; margin:0 auto; border-radius:3px;
+    background:linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.22));
+    box-shadow:0 0 8px rgba(255,255,255,.15);
   }
   .path { position:relative; padding:14px 0 26px; z-index:1; }
+  .path::before {   /* subtle solid trail between levels inside a world */
+    content:''; position:absolute; top:10px; bottom:20px; left:50%;
+    border-left:4px solid rgba(255,255,255,.14); transform:translateX(-2px); border-radius:2px;
+  }
   .node-row { position:relative; display:flex; justify-content:center; margin:26px 0; }
   .node-row:nth-child(odd)  { transform:translateX(-70px); }
   .node-row:nth-child(even) { transform:translateX(70px); }
@@ -417,19 +429,21 @@ const nvb = (npc,m,f)=> npc.g==='f' ? f : m;            // NPC verb
 /* ~3500 XP available across all 50 levels (70 XP per perfect level) —
    admiral requires nearly the whole galaxy, not just the first world */
 const RANKS = [
-  [0,'Юнга'],[300,'Пилот-стажёр'],[800,'Пилот'],[1500,'Штурман'],[2400,'Капитан'],[3400,'Адмирал Галактики']
+  [0,'Юнга','⚓'],[300,'Пилот-стажёр','🎖️'],[800,'Пилот','🚀'],
+  [1500,'Штурман','🧭'],[2400,'Капитан','⭐'],[3400,'Адмирал Галактики','👑']
 ];
 function rankInfo(){
   let i = 0;
   while (i+1 < RANKS.length && state.xp >= RANKS[i+1][0]) i++;
   const cur = RANKS[i], next = RANKS[i+1];
-  return { idx:i, name:cur[1], pct: next ? Math.round(100*(state.xp-cur[0])/(next[0]-cur[0])) : 100, next };
+  return { idx:i, name:cur[1], icon:cur[2],
+    pct: next ? Math.round(100*(state.xp-cur[0])/(next[0]-cur[0])) : 100, next };
 }
 
-/* character art: characters/web/{Nika|Kogot}_{rank}.png */
+/* character art: characters/web/{Nika|Kogot}_{rank}_3d.png */
 const RANK_FILES = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
 function charImg(g, ri){
-  return 'characters/web/'+(g==='f'?'Nika':'Kogot')+'_'+RANK_FILES[ri]+'_transparent.png';
+  return 'characters/web/'+(g==='f'?'Nika':'Kogot')+'_'+RANK_FILES[ri]+'_3d.png';
 }
 function totalStars(){ return Object.values(state.levelStars).reduce((a,b)=>a+b,0); }
 
@@ -997,11 +1011,15 @@ function renderHome(){
   const r = rankInfo();
   let html =
     '<div class="hero">'+
-    '<div class="avatar face'+(state.char.g==='f'?' girl':'')+'" style="background-image:url(\''+
-      charImg(state.char.g, r.idx)+'\'), radial-gradient(closest-side, rgba(170,130,255,.35), transparent)"></div><div style="flex:1">'+
-    '<h1>'+N()+'</h1><div class="rank">'+T()+' • Ранг: '+r.name+'</div>'+
+    '<div class="avatar3d'+(state.char.g==='f'?' girl':'')+'" style="background-image:url(\''+
+      charImg(state.char.g, r.idx)+'\')"></div>'+
+    '<div class="hero-info">'+
+    '<h1>'+N()+'</h1>'+
+    '<div class="rank">'+T()+' • <span class="rank-pill">'+r.icon+' '+r.name+'</span></div>'+
+    '<div class="xprow"><b>'+state.xp+' XP</b><span>'+
+      (r.next ? 'До ранга «'+r.next[1]+'»: '+(r.next[0]-state.xp)+' XP' : 'Максимальный ранг!')+'</span></div>'+
     '<div class="xpbar"><div style="width:'+r.pct+'%"></div></div>'+
-    '<div class="xptext">'+state.xp+' XP'+(r.next?' · до ранга «'+r.next[1]+'»: '+(r.next[0]-state.xp)+' XP':'')+'</div>'+
+    '<div class="hero-sep"></div>'+
     '<div class="starcount">⭐ '+totalStars()+' из '+MAX_STARS+'</div>'+
     '</div></div>';
 
@@ -1037,6 +1055,7 @@ function renderHome(){
         '<small>У тебя пока ⭐ '+totalStars()+'</small></div>';
     }
     html += '</div>';
+    if (wi < WORLDS.length-1) html += '<div class="connector"></div>';
   });
   html += '</div>';
 
