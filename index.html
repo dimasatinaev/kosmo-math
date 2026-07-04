@@ -209,9 +209,18 @@
   .progress > div { height:100%; background:linear-gradient(90deg,#ffd76e,#ffb340); transition:width .4s; border-radius:10px; }
 
   .card {
+    position:relative;
     background:#fff; color:#333; border-radius:24px; padding:22px 20px;
     box-shadow:0 10px 30px rgba(0,0,0,.35);
   }
+  .say-btn {
+    position:absolute; top:10px; right:10px; width:46px; height:46px; z-index:2;
+    border:none; border-radius:50%; background:#f2edff; font-size:20px; cursor:pointer;
+    box-shadow:0 3px 0 #d6c9ff;
+  }
+  .say-btn:active { transform:translateY(2px); box-shadow:0 1px 0 #d6c9ff; }
+  .card .prompt { padding:0 34px; }
+  .bubble { cursor:pointer; }
   .card.shake { animation:shake .4s; }
   @keyframes shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-10px);} 40%,80%{transform:translateX(10px);} }
 
@@ -363,6 +372,38 @@ function toggleSound(){
   const f = document.getElementById('soundFab');
   if (f) f.textContent = state.sound ? '🔊' : '🔇';
 }
+
+/* ================= speech (TTS, Web Speech API) ================= */
+let ruVoice = null, ttsReady = false;
+(function initTTS(){
+  if (!('speechSynthesis' in window)) return;
+  const load = ()=>{
+    const vs = speechSynthesis.getVoices();
+    ruVoice = vs.find(v=> v.lang && v.lang.toLowerCase().indexOf('ru')===0) || null;
+    ttsReady = !!ruVoice;
+  };
+  load();
+  speechSynthesis.onvoiceschanged = load;
+})();
+function cleanForSpeech(html){
+  return html
+    .replace(/<[^>]*>/g,' ')                                        // strip tags
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{2764}]/gu,'') // strip emoji
+    .replace(/[«»]/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+function speak(html, force){
+  if (!ttsReady) return;
+  if (!force && !state.sound) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(cleanForSpeech(html));
+    u.voice = ruVoice; u.lang = 'ru-RU'; u.rate = 0.95; u.pitch = 1.05;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+function stopSpeech(){ try{ if ('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){} }
+function sayTask(){ if (cur) speak(cur.tasks[cur.idx].prompt, true); }
 
 /* ================= helpers ================= */
 const rnd = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
@@ -840,6 +881,7 @@ function setChrome(screen){
   const show = ['map','practice','achieve','profile'].includes(screen);
   nav.style.display = show ? 'flex' : 'none';
   nav.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.s===screen));
+  stopSpeech();
   const av = document.getElementById('navAv');
   if (av){
     av.textContent = '';
@@ -1072,13 +1114,15 @@ function renderIntro(wi, li, idx){
     '<div class="intro-scene">'+
     '<div class="intro-world">'+W.icon+' '+W.name+'</div>'+
     speaker+
-    '<div class="bubble'+(line[0]==='v'?' villain':'')+'"><span class="who">'+who.n+'</span>'+text+'</div>'+
+    '<div class="bubble'+(line[0]==='v'?' villain':'')+'" onclick="speak(this.textContent, true)">'+
+      '<span class="who">'+who.n+(ttsReady?' 🔊':'')+'</span>'+text+'</div>'+
     '<button class="btn-next" onclick="'+
       (last ? 'introDone('+wi+','+li+')' : 'renderIntro('+wi+','+li+','+(idx+1)+')')+'">'+
       (last ? 'В путь! 🚀' : 'Дальше ➜')+'</button>'+
     '<div class="intro-dots">'+dots+'</div>'+
     '</div>';
   if (line[0]==='v') beep(180,.25,0,'sawtooth',.05);
+  speak(who.n+'. '+text);   // auto-read the dialog line (tap the bubble to replay)
 }
 function introDone(wi, li){ state.intros[wi] = true; save(); beginLevel(wi, li); }
 
@@ -1126,6 +1170,7 @@ function renderTask(){
     '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button>'+
     '<div class="progress"><div style="width:'+(100*cur.idx/TASKS_PER_LEVEL)+'%"></div></div></div>'+
     '<div class="card" id="card">'+
+    (ttsReady ? '<button class="say-btn" onclick="sayTask()" title="Прочитать вслух">🔊</button>' : '')+
     '<div class="prompt">'+t.prompt+'</div>'+
     '<div class="visual">'+t.visual+'</div>'+
     answerArea+
