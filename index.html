@@ -184,6 +184,38 @@
   .dev-btn:active { background:rgba(255,255,255,.22); }
   .dev-btn.danger { border-color:rgba(255,120,120,.45); color:#ff9d9d; }
 
+  /* ---------- daily mission & streak card ---------- */
+  .daily {
+    display:flex; align-items:center; gap:12px; margin-bottom:22px; padding:12px 14px;
+    background:linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.18); border-radius:20px;
+    box-shadow:0 12px 28px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .streak-chip {
+    flex-shrink:0; display:flex; align-items:center; gap:3px;
+    background:linear-gradient(180deg,#ff9f40,#e0662f); color:#fff;
+    padding:7px 13px; border-radius:999px; font-size:15px; font-weight:bold;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 4px 12px rgba(224,102,47,.4);
+  }
+  .streak-chip.off { background:rgba(255,255,255,.12); box-shadow:none; opacity:.7; }
+  .daily-mid { flex:1; min-width:0; }
+  .daily-title { font-size:11px; text-transform:uppercase; letter-spacing:.5px; opacity:.7; }
+  .daily-text { font-size:14px; font-weight:bold; margin:2px 0 6px; }
+  .daily-bar { height:8px; background:rgba(0,0,0,.35); border-radius:6px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.08); }
+  .daily-bar > div { height:100%; background:linear-gradient(90deg,#6ee7a0,#2fd573);
+    border-radius:6px; transition:width .4s; box-shadow:0 0 8px rgba(47,213,115,.5); }
+  .daily-count { flex-shrink:0; font-size:14px; font-weight:bold; opacity:.85; }
+  .daily-done { flex-shrink:0; font-size:22px; }
+  .daily-claim {
+    flex-shrink:0; padding:10px 16px; border:none; border-radius:16px; cursor:pointer;
+    font-family:inherit; font-size:15px; font-weight:bold; color:#5a2d00;
+    background:linear-gradient(180deg,#ffd76e,#ffb340);
+    box-shadow:0 4px 0 #d97b1e, 0 8px 18px rgba(255,179,64,.4), inset 0 1px 0 rgba(255,255,255,.5);
+    animation:claimPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes claimPulse { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
+
   /* ---------- floating sound + bottom nav ---------- */
   .sound-fab {
     position:fixed; top:calc(10px + env(safe-area-inset-top)); right:12px; z-index:70;
@@ -1377,6 +1409,23 @@ function renderHome(){
     '<div class="xpbar"><div style="width:'+r.pct+'%"></div></div>'+
     '</div></div>';
 
+  /* daily mission + streak */
+  ensureDaily();
+  const m = todaysMission(), mp = missionProgress(), streak = streakCurrent();
+  html += '<div class="daily">'+
+    '<div class="streak-chip'+(streak>0?'':' off')+'" title="'+tr('Дней подряд','Day streak')+'">🔥 '+streak+'</div>'+
+    '<div class="daily-mid">'+
+      '<div class="daily-title">'+tr('Миссия дня','Daily mission')+'</div>'+
+      '<div class="daily-text">'+m.icon+' '+(LANG()==='en'?m.en:m.ru)+'</div>'+
+      '<div class="daily-bar"><div style="width:'+Math.round(100*mp/m.target)+'%"></div></div>'+
+    '</div>'+
+    (state.daily.claimed
+      ? '<div class="daily-done">✅</div>'
+      : (mp >= m.target
+        ? '<button class="daily-claim" onclick="claimDaily()">+50 XP</button>'
+        : '<div class="daily-count">'+mp+'/'+m.target+'</div>'))+
+    '</div>';
+
   html += '<div class="map">';
   WORLDS.forEach((w, wi)=>{
     const open = worldOpen(wi);
@@ -1425,6 +1474,64 @@ function renderHome(){
   app.innerHTML = html;
   window.scrollTo(0, mapScroll);   // return to where the player was on the map
   updateHeroMini(window.scrollY || 0);
+}
+
+/* ---------- streaks & daily missions ---------- */
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function isYesterday(s){
+  if (!s) return false;
+  const p = s.split('-').map(Number);
+  const then = new Date(p[0], p[1]-1, p[2]);
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today0 - then) / 86400000) === 1;
+}
+function ensureDaily(){
+  const t = todayStr();
+  if (!state.daily || state.daily.date !== t)
+    state.daily = { date:t, tasks:0, firstTry:0, levels:0, practice:0, claimed:false };
+  if (!state.streak) state.streak = { count:0, last:'', best:0 };
+}
+const MISSIONS = [
+  { id:'tasks',    target:10, icon:'🧮', ru:'Реши 10 задач',                 en:'Solve 10 problems' },
+  { id:'firstTry', target:5,  icon:'🎯', ru:'Реши 5 задач с первой попытки', en:'Solve 5 problems on the first try' },
+  { id:'levels',   target:2,  icon:'🚀', ru:'Пройди 2 уровня',               en:'Finish 2 levels' },
+  { id:'practice', target:1,  icon:'🔁', ru:'Заверши одно повторение',       en:'Finish one practice session' },
+];
+function todaysMission(){
+  ensureDaily();
+  let h = 0;
+  for (const ch of state.daily.date) h += ch.charCodeAt(0);
+  return MISSIONS[h % MISSIONS.length];
+}
+function missionProgress(){
+  const m = todaysMission();
+  return Math.min(state.daily[m.id]||0, m.target);
+}
+function bumpDaily(key){ ensureDaily(); state.daily[key] = (state.daily[key]||0) + 1; }
+function streakCurrent(){
+  ensureDaily();
+  const s = state.streak;
+  return (s.last === todayStr() || isYesterday(s.last)) ? s.count : 0;
+}
+function updateStreak(){        // → true when today was just added to the streak
+  ensureDaily();
+  const t = todayStr(), s = state.streak;
+  if (s.last === t) return false;
+  s.count = isYesterday(s.last) ? s.count + 1 : 1;
+  s.last = t;
+  s.best = Math.max(s.best||0, s.count);
+  return true;
+}
+function claimDaily(){
+  ensureDaily();
+  if (state.daily.claimed || missionProgress() < todaysMission().target) return;
+  state.daily.claimed = true;
+  state.xp += 50;
+  save(); sndWin(); confetti(); renderHome();
 }
 
 /* ---------- hidden dev/test menu ----------
@@ -1618,7 +1725,10 @@ function startPracticeSession(){
 
 function finishPractice(){
   const bonus = 10;
-  state.xp += bonus; save();
+  state.xp += bonus;
+  bumpDaily('practice');
+  updateStreak();
+  save();
   const rankNow = rankInfo().name;
   const rankUp = rankNow !== cur.rankBefore;
   sndWin();
@@ -1945,7 +2055,10 @@ function correct(btn){
   if (btn) btn.classList.add('right');
   document.querySelectorAll('.opt,.key').forEach(b=>b.style.pointerEvents='none');
   const gained = cur.firstTry ? 10 : 5;
-  state.xp += gained; save();
+  state.xp += gained;
+  bumpDaily('tasks');
+  if (cur.firstTry) bumpDaily('firstTry');
+  save();
   sndCorrect();
   const fb = document.getElementById('fb');
   fb.className = 'feedback good'; fb.textContent = pick(PRAISE[LANG()])+' +'+gained+' XP';
@@ -1980,6 +2093,8 @@ function finishLevel(){
   const worldsBefore = openWorldsCount();
   state.xp += bonus;
   state.levelStars[sKey(cur.wi,cur.li)] = Math.max(lvlStars(cur.wi,cur.li), stars);
+  bumpDaily('levels');
+  const streakNew = updateStreak();
   save();
   const newWorld = openWorldsCount() > worldsBefore
     ? WORLDS[openWorldsCount()-1] : null;
@@ -2006,6 +2121,12 @@ function finishLevel(){
     (clearedNow ? '<div class="unlock-banner">'+
       tr('🌟 Все звёзды мира собраны! Кажется, '+vn(WORLDS[cur.wi].cast)+' хочет что-то сказать...',
          '🌟 All the stars of this world are collected! Looks like '+vn(WORLDS[cur.wi].cast)+' has something to say...')+'</div>' : '')+
+    (streakNew && streakCurrent()>1 ? '<div class="unlock-banner">'+
+      tr('🔥 Серия: '+streakCurrent()+' '+plural(streakCurrent(),['день','дня','дней'])+' подряд!',
+         '🔥 Streak: '+streakCurrent()+' days in a row!')+'</div>' : '')+
+    (!state.daily.claimed && missionProgress()>=todaysMission().target ? '<div class="unlock-banner">'+
+      tr('🎯 Миссия дня выполнена — забери награду на карте!',
+         '🎯 Daily mission complete — claim your reward on the map!')+'</div>' : '')+
     (clearedNow
       ? '<button class="btn-next" onclick="renderOutro('+cur.wi+',0)">'+tr('Дальше ✨','Continue ✨')+'</button>'
       : '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>')+
