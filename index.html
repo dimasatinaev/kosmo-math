@@ -201,6 +201,8 @@
     box-shadow:0 8px 20px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.12);
   }
   .topic:active { background:rgba(255,255,255,.2); }
+  .topic.sel { border-color:#ffd76e; background:rgba(255,215,110,.18);
+    box-shadow:0 0 14px rgba(255,215,110,.35); }
   .topic .w { opacity:.7; font-size:12px; display:block; }
   .ach {
     background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
@@ -453,8 +455,8 @@
 
 /* ================= state ================= */
 const SAVE_KEY = 'kosmomath_v2';
-const DEFAULT_NAMES = { f:'Ника', m:'Даня' };
-let state = { xp:0, levelStars:{}, char:{ g:'f', name:'Ника' }, sound:true, intros:{} };
+const DEFAULT_NAMES = { f:{ru:'Ника', en:'Nika'}, m:{ru:'Даня', en:'Danya'} };
+let state = { xp:0, levelStars:{}, char:{ g:'f', name:'Ника' }, sound:true, intros:{}, lang:'ru' };
 try {
   const s = localStorage.getItem(SAVE_KEY);
   if (s) state = JSON.parse(s);
@@ -469,27 +471,39 @@ try {
 if (!state.char) state.char = { g:'f', name:'Ника' };
 if (state.sound === undefined) state.sound = true;
 if (!state.intros) state.intros = {};
+if (!state.lang) state.lang = 'ru';
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
+
+/* i18n helpers */
+const LANG = ()=> state.lang || 'ru';
+const tr = (ru, en)=> LANG()==='en' ? en : ru;
 
 /* character helpers */
 const N  = ()=> state.char.name;
-const T  = ()=> state.char.g==='f' ? 'Астрокошка' : 'Космокот';
+const T  = ()=> state.char.g==='f' ? tr('Астрокошка','Astrocat') : tr('Космокот','Cosmocat');
 const AV = ()=> state.char.g==='f' ? '😺' : '🐱';
-const vb = (m,f)=> state.char.g==='f' ? f : m;          // player verb
-const nvb = (npc,m,f)=> npc.g==='f' ? f : m;            // NPC verb
+const vb = (m,f)=> state.char.g==='f' ? f : m;          // player verb (ru only)
+const nvb = (npc,m,f)=> npc.g==='f' ? f : m;            // NPC verb (ru only)
+const hn = c => c.h.n[LANG()];                          // helper NPC name
+const vn = c => c.v.n[LANG()];                          // villain NPC name
 
 /* ~3500 XP available across all 50 levels (70 XP per perfect level) —
    admiral requires nearly the whole galaxy, not just the first world */
 const RANKS = [
-  [0,'Юнга','⚓'],[300,'Пилот-стажёр','🎖️'],[800,'Пилот','🚀'],
-  [1500,'Штурман','🧭'],[2400,'Капитан','⭐'],[3400,'Адмирал Галактики','👑']
+  [0,{ru:'Юнга',en:'Cadet'},'⚓'],
+  [300,{ru:'Пилот-стажёр',en:'Trainee Pilot'},'🎖️'],
+  [800,{ru:'Пилот',en:'Pilot'},'🚀'],
+  [1500,{ru:'Штурман',en:'Navigator'},'🧭'],
+  [2400,{ru:'Капитан',en:'Captain'},'⭐'],
+  [3400,{ru:'Адмирал Галактики',en:'Galaxy Admiral'},'👑']
 ];
 function rankInfo(){
   let i = 0;
   while (i+1 < RANKS.length && state.xp >= RANKS[i+1][0]) i++;
   const cur = RANKS[i], next = RANKS[i+1];
-  return { idx:i, name:cur[1], icon:cur[2],
-    pct: next ? Math.round(100*(state.xp-cur[0])/(next[0]-cur[0])) : 100, next };
+  return { idx:i, name:cur[1][LANG()], icon:cur[2],
+    pct: next ? Math.round(100*(state.xp-cur[0])/(next[0]-cur[0])) : 100,
+    next: next ? { xp:next[0], name:next[1][LANG()] } : null };
 }
 
 /* character art: characters/web/{Nika|Kogot}_{rank}_3d.png */
@@ -528,17 +542,18 @@ function toggleSound(){
 }
 
 /* ================= speech (TTS, Web Speech API) ================= */
-let ruVoice = null, ttsReady = false;
+let ttsVoices = [];
 (function initTTS(){
   if (!('speechSynthesis' in window)) return;
-  const load = ()=>{
-    const vs = speechSynthesis.getVoices();
-    ruVoice = vs.find(v=> v.lang && v.lang.toLowerCase().indexOf('ru')===0) || null;
-    ttsReady = !!ruVoice;
-  };
+  const load = ()=>{ ttsVoices = speechSynthesis.getVoices(); };
   load();
   speechSynthesis.onvoiceschanged = load;
 })();
+function voiceFor(){
+  const p = LANG()==='en' ? 'en' : 'ru';
+  return ttsVoices.find(v=> v.lang && v.lang.toLowerCase().indexOf(p)===0) || null;
+}
+function ttsOk(){ return !!voiceFor(); }
 function cleanForSpeech(html){
   return html
     .replace(/<[^>]*>/g,' ')                                        // strip tags
@@ -547,12 +562,13 @@ function cleanForSpeech(html){
     .replace(/\s+/g,' ').trim();
 }
 function speak(html, force){
-  if (!ttsReady) return;
+  const v = voiceFor();
+  if (!v) return;
   if (!force && !state.sound) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(cleanForSpeech(html));
-    u.voice = ruVoice; u.lang = 'ru-RU'; u.rate = 0.95; u.pitch = 1.05;
+    u.voice = v; u.lang = LANG()==='en' ? 'en-US' : 'ru-RU'; u.rate = 0.95; u.pitch = 1.05;
     speechSynthesis.speak(u);
   } catch(e){}
 }
@@ -571,25 +587,45 @@ function emRows(e,n){ // rows of 5 so counting big numbers is easier
 }
 
 const ITEMS = [
-  {e:'🚀', f:['ракета','ракеты','ракет']},
-  {e:'⭐', f:['звезда','звезды','звёзд']},
-  {e:'🪐', f:['планета','планеты','планет']},
-  {e:'☄️', f:['комета','кометы','комет']},
-  {e:'👽', f:['инопланетянин','инопланетянина','инопланетян']},
-  {e:'🛸', f:['тарелка','тарелки','тарелок']},
-  {e:'🍩', f:['космопончик','космопончика','космопончиков']},
-  {e:'🤖', f:['робот','робота','роботов']},
+  {e:'🚀', f:['ракета','ракеты','ракет'], en:['rocket','rockets']},
+  {e:'⭐', f:['звезда','звезды','звёзд'], en:['star','stars']},
+  {e:'🪐', f:['планета','планеты','планет'], en:['planet','planets']},
+  {e:'☄️', f:['комета','кометы','комет'], en:['comet','comets']},
+  {e:'👽', f:['инопланетянин','инопланетянина','инопланетян'], en:['alien','aliens']},
+  {e:'🛸', f:['тарелка','тарелки','тарелок'], en:['saucer','saucers']},
+  {e:'🍩', f:['космопончик','космопончика','космопончиков'], en:['space donut','space donuts']},
+  {e:'🤖', f:['робот','робота','роботов'], en:['robot','robots']},
 ];
-const PRAISE = ['Отлично! 🎉','Космически! 🚀','Супер! ⭐','Молодец! 💫','Верно! 🛸','Ты звезда! 🌟'];
-const RETRY  = ['Попробуй ещё раз! 💪','Почти! Подумай ещё 🤔','Не сдавайся! 🚀'];
-const QUOTES = [
-  'Каждая решённая задача — новая звезда на твоём небе!',
-  'Настоящие капитаны не боятся трудных примеров!',
-  'Умение считать — это суперсила!',
-  'Ошибки — это ступеньки к победе!',
-  'Кто тренируется — тот побеждает!',
-  'Смелость и математика откроют любую дверь!'
-];
+/* word for "n items" and "many items" in the current language */
+const wordFor = (n, it)=> LANG()==='en' ? (n===1 ? it.en[0] : it.en[1]) : plural(n, it.f);
+const manyOf  = it => LANG()==='en' ? it.en[1] : it.f[2];
+
+const PRAISE = {
+  ru:['Отлично! 🎉','Космически! 🚀','Супер! ⭐','Молодец! 💫','Верно! 🛸','Ты звезда! 🌟'],
+  en:['Great job! 🎉','Cosmic! 🚀','Super! ⭐','Well done! 💫','Correct! 🛸','You are a star! 🌟']
+};
+const RETRY = {
+  ru:['Попробуй ещё раз! 💪','Почти! Подумай ещё 🤔','Не сдавайся! 🚀'],
+  en:['Try again! 💪','Almost! Think again 🤔','Don’t give up! 🚀']
+};
+const QUOTES = {
+  ru:[
+    'Каждая решённая задача — новая звезда на твоём небе!',
+    'Настоящие капитаны не боятся трудных примеров!',
+    'Умение считать — это суперсила!',
+    'Ошибки — это ступеньки к победе!',
+    'Кто тренируется — тот побеждает!',
+    'Смелость и математика откроют любую дверь!'
+  ],
+  en:[
+    'Every solved problem is a new star in your sky!',
+    'Real captains are not afraid of tricky problems!',
+    'Knowing how to count is a superpower!',
+    'Mistakes are steps to victory!',
+    'Practice makes champions!',
+    'Courage and math will open any door!'
+  ]
+};
 
 /* ================= task generators =================
    task = { prompt, visual, kind:'choice'|'input', options?, answer }
@@ -599,7 +635,8 @@ function genCount(max, kind){
   const it = pick(ITEMS);
   const n = rnd(2, max);
   const t = {
-    prompt:'Сосчитай! Сколько здесь '+it.f[2]+'?',
+    prompt:tr('Сосчитай! Сколько здесь '+it.f[2]+'?',
+              'Count! How many '+it.en[1]+' are here?'),
     visual:'<div class="grp">'+em(it.e,n)+'</div>',
     kind, answer:String(n)
   };
@@ -618,7 +655,8 @@ function genCompare(lo, hi){
   const i1 = pick(ITEMS); let i2 = pick(ITEMS);
   while (i2===i1) i2 = pick(ITEMS);
   return {
-    prompt:'Сравни количество! Выбери правильный знак.',
+    prompt:tr('Сравни количество! Выбери правильный знак.',
+              'Compare the amounts! Choose the correct sign.'),
     visual:'<div class="grp">'+emRows(i1.e,a)+'</div><span class="op">?</span><div class="grp">'+emRows(i2.e,b)+'</div>',
     kind:'choice', options:['>','<','='],
     answer: a>b ? '>' : (a<b ? '<' : '=')
@@ -628,7 +666,8 @@ function genCompare(lo, hi){
 function genBonds(c, maxTotal){
   const total = rnd(4, maxTotal||10), p = rnd(1,total-1);
   return {
-    prompt:c.h.e+' '+c.h.n+' просит помощи: какое число спряталось?',
+    prompt:tr(c.h.e+' '+hn(c)+' просит помощи: какое число спряталось?',
+              c.h.e+' '+hn(c)+' needs help: which number is hiding?'),
     visual:'<span class="bignum">'+total+' = '+p+' + </span><span class="gap">?</span>',
     kind:'input', answer:String(total-p)
   };
@@ -637,9 +676,13 @@ function genBonds(c, maxTotal){
 function genAdd(max, c){
   const a = rnd(1,6), b = rnd(1, Math.max(1, max-a));
   const it = pick(ITEMS);
-  const tpl = pick([
-    N()+' и '+c.h.n+' нашли '+a+' '+plural(a,it.f)+', а потом ещё '+b+'. Сколько всего?',
-    N()+' '+vb('собрал','собрала')+' '+a+' '+plural(a,it.f)+'. '+c.h.e+' '+c.h.n+' '+nvb(c.h,'принёс','принесла')+' ещё '+b+'. Сколько стало?',
+  const tpl = LANG()==='en' ? pick([
+    N()+' and '+hn(c)+' found '+a+' '+wordFor(a,it)+', and then '+b+' more. How many in total?',
+    N()+' collected '+a+' '+wordFor(a,it)+'. '+c.h.e+' '+hn(c)+' brought '+b+' more. How many now?',
+    'In the morning '+N()+' found '+a+' '+wordFor(a,it)+', and in the evening — '+b+' more. How many in total?'
+  ]) : pick([
+    N()+' и '+hn(c)+' нашли '+a+' '+plural(a,it.f)+', а потом ещё '+b+'. Сколько всего?',
+    N()+' '+vb('собрал','собрала')+' '+a+' '+plural(a,it.f)+'. '+c.h.e+' '+hn(c)+' '+nvb(c.h,'принёс','принесла')+' ещё '+b+'. Сколько стало?',
     'Утром '+N()+' '+vb('нашёл','нашла')+' '+a+' '+plural(a,it.f)+', а вечером — ещё '+b+'. Сколько всего?'
   ]);
   return {
@@ -652,10 +695,14 @@ function genAdd(max, c){
 function genSub(c, maxA){
   const a = rnd(3, maxA||10), b = rnd(1,a-1);
   const it = pick(ITEMS);
-  const tpl = pick([
+  const tpl = LANG()==='en' ? pick([
+    N()+' took '+a+' '+wordFor(a,it)+' on the flight. '+b+' went to friends. How many are left?',
+    'There were '+a+' '+wordFor(a,it)+' in orbit. '+b+' flew home. How many are left?',
+    'There were '+a+' '+wordFor(a,it)+'. '+c.h.e+' '+hn(c)+' took '+b+'. How many are left?'
+  ]) : pick([
     N()+' '+vb('взял','взяла')+' в полёт '+a+' '+plural(a,it.f)+'. '+b+' '+vb('он отдал','она отдала')+' друзьям. Сколько осталось?',
     'На орбите летало '+a+' '+plural(a,it.f)+'. '+b+' улетели домой. Сколько осталось?',
-    'Было '+a+' '+plural(a,it.f)+'. '+c.h.e+' '+c.h.n+' '+nvb(c.h,'забрал','забрала')+' '+b+' себе. Сколько осталось?'
+    'Было '+a+' '+plural(a,it.f)+'. '+c.h.e+' '+hn(c)+' '+nvb(c.h,'забрал','забрала')+' '+b+' себе. Сколько осталось?'
   ]);
   return {
     prompt:tpl,
@@ -668,20 +715,27 @@ function genStory(c, k){
   const kind = k||rnd(1,3);
   if (kind===1){
     const need = rnd(8,12), a = rnd(1,5), b = rnd(1,5), d = rnd(1,5);
+    const YES = tr('Да','Yes'), NO = tr('Нет','No');
     return {
-      prompt:T()+' '+N()+' готовится к прыжку в гиперпространство! Для прыжка нужно '+need+
+      prompt:tr(
+        T()+' '+N()+' готовится к прыжку в гиперпространство! Для прыжка нужно '+need+
         ' энерго-ячеек. В двигателе уже '+a+', в хранилище '+b+' и ещё '+d+' на складе. Хватит ли энергии для прыжка?',
+        T()+' '+N()+' is getting ready for a hyperspace jump! The ship needs '+need+
+        ' energy cells. There are already '+a+' in the engine, '+b+' in storage and '+d+' more in the warehouse. Is there enough energy for the jump?'),
       visual:'<div class="grp">'+em('🔋',a)+'</div><span class="op">+</span><div class="grp">'+em('🔋',b)+
         '</div><span class="op">+</span><div class="grp">'+em('🔋',d)+'</div>',
-      kind:'choice', options:['Да','Нет'], answer: (a+b+d>=need)?'Да':'Нет'
+      kind:'choice', options:[YES,NO], answer: (a+b+d>=need)?YES:NO
     };
   }
   if (kind===2){
     const a = rnd(1,4), b = rnd(1,3), d = rnd(1,3);
     const it = pick([ITEMS[1],ITEMS[3],ITEMS[6]]);
     return {
-      prompt:N()+' собирает звёздное топливо! Утром '+vb('он нашёл','она нашла')+' '+a+' '+plural(a,it.f)+
+      prompt:tr(
+        N()+' собирает звёздное топливо! Утром '+vb('он нашёл','она нашла')+' '+a+' '+plural(a,it.f)+
         ', днём — '+b+', а вечером — ещё '+d+'. Сколько всего получилось?',
+        N()+' is collecting star fuel! In the morning: '+a+' '+wordFor(a,it)+
+        ', in the afternoon — '+b+', and in the evening — '+d+' more. How many in total?'),
       visual:'<div class="grp">'+em(it.e,a)+'</div><span class="op">+</span><div class="grp">'+em(it.e,b)+
         '</div><span class="op">+</span><div class="grp">'+em(it.e,d)+'</div>',
       kind:'input', answer:String(a+b+d)
@@ -689,8 +743,11 @@ function genStory(c, k){
   }
   const a = rnd(5,10), b = rnd(1,4);
   return {
-    prompt:'На космической станции пришвартовалось '+a+' '+plural(a,['корабль','корабля','кораблей'])+
+    prompt:tr(
+      'На космической станции пришвартовалось '+a+' '+plural(a,['корабль','корабля','кораблей'])+
       '. Потом '+b+' '+(b===1?'улетел':'улетели')+' в туманность. Сколько кораблей осталось?',
+      'There were '+a+' '+(a===1?'ship':'ships')+' docked at the space station. Then '+b+
+      ' flew off into the nebula. How many ships are left?'),
     visual:'<div class="grp">'+em('🚀',a-b)+em('🚀',b,'gone')+'</div>',
     kind:'input', answer:String(a-b)
   };
@@ -699,9 +756,13 @@ function genStory(c, k){
 /* --- Пояс астероидов --- */
 function genCount20(lo, hi){
   const n = rnd(lo||11, hi||20);
-  const it = pick([{e:'💎',f:['кристалл','кристалла','кристаллов']},{e:'🪨',f:['камень','камня','камней']}]);
+  const it = pick([
+    {e:'💎', f:['кристалл','кристалла','кристаллов'], en:['crystal','crystals']},
+    {e:'🪨', f:['камень','камня','камней'], en:['stone','stones']}
+  ]);
   return {
-    prompt:'Ого, целая россыпь! Сосчитай, сколько здесь '+it.f[2]+'. Подсказка: в каждом ряду по 5!',
+    prompt:tr('Ого, целая россыпь! Сосчитай, сколько здесь '+it.f[2]+'. Подсказка: в каждом ряду по 5!',
+              'Wow, what a pile! Count the '+it.en[1]+'. Tip: each row has 5!'),
     visual:'<div class="grp">'+emRows(it.e,n)+'</div>',
     kind:'input', answer:String(n)
   };
@@ -710,7 +771,8 @@ function genAddCross(c, big){
   const a = big ? rnd(6,9) : rnd(5,9);
   const b = big ? rnd(6,9) : rnd(Math.max(2,11-a), 9);
   return {
-    prompt:c.h.e+' '+c.h.n+' и '+N()+' добывают кристаллы: сначала нашли '+a+', потом ещё '+b+'. Сколько всего кристаллов?',
+    prompt:tr(c.h.e+' '+hn(c)+' и '+N()+' добывают кристаллы: сначала нашли '+a+', потом ещё '+b+'. Сколько всего кристаллов?',
+              c.h.e+' '+hn(c)+' and '+N()+' are mining crystals: first they found '+a+', then '+b+' more. How many crystals in total?'),
     visual:'<div class="grp">'+emRows('💎',a)+'</div><span class="op">+</span><div class="grp">'+emRows('💎',b)+'</div>',
     kind:'input', answer:String(a+b)
   };
@@ -720,8 +782,11 @@ function genTwoStep(c, big){
   const b = big ? rnd(3,6) : rnd(1,4);
   const d = big ? rnd(2, Math.min(a+b-1, 7)) : rnd(1, Math.min(a+b-1, 5));
   return {
-    prompt:N()+' и '+c.h.n+' собрали сначала '+a+' '+plural(a,['звезду','звезды','звёзд'])+', потом ещё '+b+
-      '. Но '+c.v.e+' '+c.v.n+' '+nvb(c.v,'утащил','утащила')+' '+d+'! Сколько звёзд осталось?',
+    prompt:tr(
+      N()+' и '+hn(c)+' собрали сначала '+a+' '+plural(a,['звезду','звезды','звёзд'])+', потом ещё '+b+
+      '. Но '+c.v.e+' '+vn(c)+' '+nvb(c.v,'утащил','утащила')+' '+d+'! Сколько звёзд осталось?',
+      N()+' and '+hn(c)+' collected '+a+' '+(a===1?'star':'stars')+', then '+b+
+      ' more. But '+c.v.e+' '+vn(c)+' stole '+d+'! How many stars are left?'),
     visual:'<div class="grp">'+em('⭐',a)+'</div><span class="op">+</span><div class="grp">'+em('⭐',b)+
       '</div><span class="op">−</span><div class="grp">'+em('⭐',d,'gone')+'</div>',
     kind:'input', answer:String(a+b-d)
@@ -739,7 +804,8 @@ function genSeq(steps, dir){
   const opts = new Set([ans]);
   while (opts.size<4) opts.add(Math.max(0, ans+rnd(-3,3)));
   return {
-    prompt:'Роботы печатают числа по порядку. Какое число будет следующим?',
+    prompt:tr('Роботы печатают числа по порядку. Какое число будет следующим?',
+              'The robots are printing numbers in order. Which number comes next?'),
     visual:'<span class="bignum">'+seq.join(', ')+', </span><span class="gap">?</span>',
     kind:'choice', options:shuffle([...opts]).map(String), answer:String(ans)
   };
@@ -753,7 +819,8 @@ function genShapePattern(pl){
   const ans = p[len%p.length];
   const opts = shuffle(p.concat(shapes[p.length]).slice(0,4));
   return {
-    prompt:'Робот-художник рисует узор. Какая фигура будет следующей?',
+    prompt:tr('Робот-художник рисует узор. Какая фигура будет следующей?',
+              'The robot artist is drawing a pattern. Which shape comes next?'),
     visual:'<div class="grp" style="font-size:36px">'+seq+'<span class="gap">?</span></div>',
     kind:'choice', options:opts, answer:ans
   };
@@ -771,38 +838,45 @@ function genOddOne(){
   const odd = pick(cats[oi]);
   const opts = shuffle(three.concat(odd));
   return {
-    prompt:'Робот-сортировщик запутался! Что здесь лишнее?',
+    prompt:tr('Робот-сортировщик запутался! Что здесь лишнее?',
+              'The sorting robot got confused! Which one doesn’t belong?'),
     visual:'<div class="grp" style="font-size:40px">'+opts.join(' ')+'</div>',
     kind:'choice', options:opts, answer:odd
   };
 }
 
 /* --- Туманность времени --- */
+const HOUR = { f:['час','часа','часов'], en:['hour','hours'] };
 function genClock(mode){
   if (mode==='back'){
     const h = rnd(4,11), d = rnd(1,3);
     return {
-      prompt:'Часы показывают '+h+' '+plural(h,['час','часа','часов'])+'. Сколько было '+d+' '+plural(d,['час','часа','часов'])+' назад?',
+      prompt:tr('Часы показывают '+h+' '+plural(h,HOUR.f)+'. Сколько было '+d+' '+plural(d,HOUR.f)+' назад?',
+                'The clock shows '+h+'. What time was it '+d+' '+wordFor(d,HOUR)+' ago?'),
       visual:'<span style="font-size:56px">🕐</span><br><span class="bignum">'+h+' − '+d+' = </span><span class="gap">?</span>',
       kind:'input', answer:String(h-d)
     };
   }
   const h = rnd(1,9), d = mode==='fwd1' ? 1 : rnd(2,3);
   return {
-    prompt:'Часы показывают '+h+' '+plural(h,['час','часа','часов'])+'. Сколько будет через '+d+' '+plural(d,['час','часа','часов'])+'?',
+    prompt:tr('Часы показывают '+h+' '+plural(h,HOUR.f)+'. Сколько будет через '+d+' '+plural(d,HOUR.f)+'?',
+              'The clock shows '+h+'. What time will it be in '+d+' '+wordFor(d,HOUR)+'?'),
     visual:'<span style="font-size:56px">🕐</span><br><span class="bignum">'+h+' + '+d+' = </span><span class="gap">?</span>',
     kind:'input', answer:String(h+d)
   };
 }
 function genDays(mode){
-  const DAYS = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
+  const DAYS = LANG()==='en'
+    ? ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    : ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
   const i = rnd(0,6);
   const tomorrow = mode==='tomorrow' ? true : mode==='yesterday' ? false : Math.random()<0.6;
   const ans = tomorrow ? DAYS[(i+1)%7] : DAYS[(i+6)%7];
   const opts = new Set([ans]);
   while (opts.size<3) opts.add(DAYS[rnd(0,6)]);
   return {
-    prompt:'Сегодня '+DAYS[i]+'. Какой день '+(tomorrow?'будет завтра':'был вчера')+'?',
+    prompt:tr('Сегодня '+DAYS[i]+'. Какой день '+(tomorrow?'будет завтра':'был вчера')+'?',
+              'Today is '+DAYS[i]+'. What day '+(tomorrow?'will it be tomorrow':'was it yesterday')+'?'),
     visual:'<span style="font-size:56px">📅</span>',
     kind:'choice', options:shuffle([...opts]), answer:ans
   };
@@ -816,7 +890,8 @@ function genMoney(c, cnts){
     for (let i=0;i<cnt;i++){ const d = pick(denoms); coins.push(d); sum += d; }
   } while (sum > 20);
   return {
-    prompt:c.h.e+' '+c.h.n+' даёт монетки на космо-мороженое. Сколько всего рублей?',
+    prompt:tr(c.h.e+' '+hn(c)+' даёт монетки на космо-мороженое. Сколько всего монеток получилось?',
+              c.h.e+' '+hn(c)+' gives you coins for space ice cream. How much is it in total?'),
     visual:coins.map(d=>'<span class="coin">'+d+'</span>').join(''),
     kind:'input', answer:String(sum)
   };
@@ -825,131 +900,179 @@ function genMoney(c, cnts){
 /* ================= worlds ================= */
 const WORLDS = [
   {
-    name:'Родная планета', icon:'🏡', gate:0,
+    name:{ru:'Родная планета', en:'Home Planet'}, icon:'🏡', gate:0,
     tint:'linear-gradient(180deg, rgba(90,200,120,.22), rgba(40,120,70,.12))',
     deco:['🌳','🌸','🍄','🦋'],
-    cast:{ h:{n:'котёнок Пуша', e:'🐱', g:'m'}, v:{n:'ворона Карка', e:'🐦‍⬛', g:'f'} },
-    intro:[
-      ['h','Мяу! Привет, {N}! Я котёнок Пуша. На нашей планете столько всего интересного — помоги мне всё сосчитать!'],
-      ['v','Кар-р-р! А я ворона Карка! Я всё перепутаю, и вы собьётесь со счёта!'],
-      ['p','Не выйдет, Карка! Мы с Пушей умеем считать. Вперёд!'],
-    ],
+    cast:{ h:{n:{ru:'котёнок Пуша', en:'Pusha the Kitten'}, e:'🐱', g:'m'},
+           v:{n:{ru:'ворона Карка', en:'Karka the Crow'}, e:'🐦‍⬛', g:'f'} },
+    intro:{
+      ru:[
+        ['h','Мяу! Привет, {N}! Я котёнок Пуша. На нашей планете столько всего интересного — помоги мне всё сосчитать!'],
+        ['v','Кар-р-р! А я ворона Карка! Я всё перепутаю, и вы собьётесь со счёта!'],
+        ['p','Не выйдет, Карка! Мы с Пушей умеем считать. Вперёд!'],
+      ],
+      en:[
+        ['h','Meow! Hi, {N}! I am Pusha the Kitten. There is so much to see on our planet — help me count it all!'],
+        ['v','Caw-caw! And I am Karka the Crow! I will mix everything up and you will lose count!'],
+        ['p','No way, Karka! Pusha and I know how to count. Let’s go!'],
+      ]
+    },
     levels:[
-      { title:'Учимся считать',    icon:'🐣', gen:c=>genCount(5,'choice') },
-      { title:'Считаем до 7',      icon:'🐥', gen:c=>genCount(7,'choice') },
-      { title:'Счёт до 10',        icon:'🔟', gen:c=>genCount(10,'input') },
-      { title:'Кто больше?',       icon:'🐘', gen:c=>genCompare(1,5) },
-      { title:'Больше или меньше', icon:'⚖️', gen:c=>genCompare(1,9) },
-      { title:'Прятки чисел',      icon:'🙈', gen:c=>genBonds(c,6) },
-      { title:'Состав числа',      icon:'🧩', gen:c=>genBonds(c,10) },
-      { title:'Быстрый счёт',      icon:'⚡', gen:c=>pick([()=>genCount(10,'input'),()=>genCompare(1,9),()=>genBonds(c,10)])() },
-      { title:'Испытание Карки',   icon:'🐦‍⬛', boss:true, gen:c=>pick([()=>genCount(10,'input'),()=>genCompare(1,9),()=>genBonds(c,10)])() },
+      { title:{ru:'Учимся считать', en:'Learning to Count'},    icon:'🐣', gen:c=>genCount(5,'choice') },
+      { title:{ru:'Считаем до 7', en:'Counting to 7'},          icon:'🐥', gen:c=>genCount(7,'choice') },
+      { title:{ru:'Счёт до 10', en:'Counting to 10'},           icon:'🔟', gen:c=>genCount(10,'input') },
+      { title:{ru:'Кто больше?', en:'Who Has More?'},           icon:'🐘', gen:c=>genCompare(1,5) },
+      { title:{ru:'Больше или меньше', en:'More or Less'},      icon:'⚖️', gen:c=>genCompare(1,9) },
+      { title:{ru:'Прятки чисел', en:'Hidden Numbers'},         icon:'🙈', gen:c=>genBonds(c,6) },
+      { title:{ru:'Состав числа', en:'Number Bonds'},           icon:'🧩', gen:c=>genBonds(c,10) },
+      { title:{ru:'Быстрый счёт', en:'Speed Count'},            icon:'⚡', gen:c=>pick([()=>genCount(10,'input'),()=>genCompare(1,9),()=>genBonds(c,10)])() },
+      { title:{ru:'Испытание Карки', en:'Karka’s Challenge'},   icon:'🐦‍⬛', boss:true, gen:c=>pick([()=>genCount(10,'input'),()=>genCompare(1,9),()=>genBonds(c,10)])() },
     ]
   },
   {
-    name:'Луна', icon:'🌙', gate:18,
+    name:{ru:'Луна', en:'The Moon'}, icon:'🌙', gate:18,
     tint:'linear-gradient(180deg, rgba(190,190,215,.20), rgba(90,90,120,.12))',
     deco:['🌑','🪨','⭐','🕳️'],
-    cast:{ h:{n:'лунный заяц Луня', e:'🐰', g:'m'}, v:{n:'метеорит Бум', e:'☄️', g:'m'} },
-    intro:[
-      ['h','Привет, {N}! Я лунный заяц Луня. Мои лунные камушки рассыпались по всем кратерам — поможешь их складывать и вычитать?'],
-      ['v','БУМ-М-М! Я метеорит Бум! Сейчас разобью все ваши примеры на кусочки!'],
-      ['p','Плюс и минус нас не подведут. Летим, Луня!'],
-    ],
+    cast:{ h:{n:{ru:'лунный заяц Луня', en:'Lunya the Moon Bunny'}, e:'🐰', g:'m'},
+           v:{n:{ru:'метеорит Бум', en:'Boom the Meteor'}, e:'☄️', g:'m'} },
+    intro:{
+      ru:[
+        ['h','Привет, {N}! Я лунный заяц Луня. Мои лунные камушки рассыпались по всем кратерам — поможешь их складывать и вычитать?'],
+        ['v','БУМ-М-М! Я метеорит Бум! Сейчас разобью все ваши примеры на кусочки!'],
+        ['p','Плюс и минус нас не подведут. Летим, Луня!'],
+      ],
+      en:[
+        ['h','Hi, {N}! I am Lunya the Moon Bunny. My moon pebbles are scattered all over the craters — will you help me add and subtract them?'],
+        ['v','BOO-O-OM! I am Boom the Meteor! I will smash all your sums to pieces!'],
+        ['p','Plus and minus won’t let us down. Let’s fly, Lunya!'],
+      ]
+    },
     levels:[
-      { title:'Сложение до 5',      icon:'➕', gen:c=>genAdd(5,c) },
-      { title:'Сложение до 10',     icon:'✨', gen:c=>genAdd(10,c) },
-      { title:'Вычитание',          icon:'➖', gen:c=>genSub(c,6) },
-      { title:'Вычитание до 10',    icon:'🌒', gen:c=>genSub(c,10) },
-      { title:'Плюс или минус?',    icon:'🎲', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10)])() },
-      { title:'Задачи-истории',     icon:'📖', gen:c=>genStory(c) },
-      { title:'Энергия для прыжка', icon:'🔋', gen:c=>genStory(c,1) },
-      { title:'Лунная тренировка',  icon:'🌙', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genStory(c)])() },
-      { title:'Испытание Бума',     icon:'💥', boss:true, gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genStory(c)])() },
+      { title:{ru:'Сложение до 5', en:'Adding to 5'},           icon:'➕', gen:c=>genAdd(5,c) },
+      { title:{ru:'Сложение до 10', en:'Adding to 10'},         icon:'✨', gen:c=>genAdd(10,c) },
+      { title:{ru:'Вычитание', en:'Subtraction'},               icon:'➖', gen:c=>genSub(c,6) },
+      { title:{ru:'Вычитание до 10', en:'Subtracting to 10'},   icon:'🌒', gen:c=>genSub(c,10) },
+      { title:{ru:'Плюс или минус?', en:'Plus or Minus?'},      icon:'🎲', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10)])() },
+      { title:{ru:'Задачи-истории', en:'Story Problems'},       icon:'📖', gen:c=>genStory(c) },
+      { title:{ru:'Энергия для прыжка', en:'Jump Energy'},      icon:'🔋', gen:c=>genStory(c,1) },
+      { title:{ru:'Лунная тренировка', en:'Moon Training'},     icon:'🌙', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genStory(c)])() },
+      { title:{ru:'Испытание Бума', en:'Boom’s Challenge'},     icon:'💥', boss:true, gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genStory(c)])() },
     ]
   },
   {
-    name:'Пояс астероидов', icon:'☄️', gate:38,
+    name:{ru:'Пояс астероидов', en:'Asteroid Belt'}, icon:'☄️', gate:38,
     tint:'linear-gradient(180deg, rgba(220,150,80,.20), rgba(140,80,40,.12))',
     deco:['🪨','💎','✨','🛰️'],
-    cast:{ h:{n:'инопланетянин Зюм', e:'👽', g:'m'}, v:{n:'пират Крыс', e:'🏴‍☠️', g:'m'} },
-    intro:[
-      ['h','Зюм-зюм! Я Зюм, собиратель кристаллов. Здесь их видимо-невидимо — целых двадцать в одной куче! Поможешь сосчитать?'],
-      ['v','Йо-хо-хо! Космический пират Крыс! Все кристаллы будут мои!'],
-      ['p','Сокровища достаются тем, кто умеет считать до 20. За дело!'],
-    ],
+    cast:{ h:{n:{ru:'инопланетянин Зюм', en:'Zyum the Alien'}, e:'👽', g:'m'},
+           v:{n:{ru:'пират Крыс', en:'Pirate Kryss'}, e:'🏴‍☠️', g:'m'} },
+    intro:{
+      ru:[
+        ['h','Зюм-зюм! Я Зюм, собиратель кристаллов. Здесь их видимо-невидимо — целых двадцать в одной куче! Поможешь сосчитать?'],
+        ['v','Йо-хо-хо! Космический пират Крыс! Все кристаллы будут мои!'],
+        ['p','Сокровища достаются тем, кто умеет считать до 20. За дело!'],
+      ],
+      en:[
+        ['h','Zyum-zyum! I am Zyum, the crystal collector. There are heaps of them here — twenty in one pile! Will you help me count?'],
+        ['v','Yo-ho-ho! Space Pirate Kryss! All the crystals will be mine!'],
+        ['p','Treasures go to those who can count to 20. Let’s get to work!'],
+      ]
+    },
     levels:[
-      { title:'Считаем до 15',         icon:'💎', gen:c=>genCount20(11,15) },
-      { title:'Считаем до 20',         icon:'🪨', gen:c=>genCount20(15,20) },
-      { title:'Через десяток',         icon:'🚀', gen:c=>genAddCross(c) },
-      { title:'Большие суммы',         icon:'💥', gen:c=>genAddCross(c,true) },
-      { title:'Два действия',          icon:'🎯', gen:c=>genTwoStep(c) },
-      { title:'Два действия: сложнее', icon:'🌪️', gen:c=>genTwoStep(c,true) },
-      { title:'Сравни сокровища',      icon:'⚖️', gen:c=>genCompare(8,20) },
-      { title:'Проверка Крыса',        icon:'🏴‍☠️', boss:true, gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c,true),()=>genCount20(11,20)])() },
+      { title:{ru:'Считаем до 15', en:'Counting to 15'},               icon:'💎', gen:c=>genCount20(11,15) },
+      { title:{ru:'Считаем до 20', en:'Counting to 20'},               icon:'🪨', gen:c=>genCount20(15,20) },
+      { title:{ru:'Через десяток', en:'Crossing Ten'},                 icon:'🚀', gen:c=>genAddCross(c) },
+      { title:{ru:'Большие суммы', en:'Big Sums'},                     icon:'💥', gen:c=>genAddCross(c,true) },
+      { title:{ru:'Два действия', en:'Two Steps'},                     icon:'🎯', gen:c=>genTwoStep(c) },
+      { title:{ru:'Два действия: сложнее', en:'Two Steps: Harder'},    icon:'🌪️', gen:c=>genTwoStep(c,true) },
+      { title:{ru:'Сравни сокровища', en:'Compare Treasures'},         icon:'⚖️', gen:c=>genCompare(8,20) },
+      { title:{ru:'Проверка Крыса', en:'Kryss’s Test'},                icon:'🏴‍☠️', boss:true, gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c,true),()=>genCount20(11,20)])() },
     ]
   },
   {
-    name:'Планета роботов', icon:'🤖', gate:56,
+    name:{ru:'Планета роботов', en:'Robot Planet'}, icon:'🤖', gate:56,
     tint:'linear-gradient(180deg, rgba(80,170,230,.20), rgba(40,90,140,.12))',
     deco:['⚙️','🔩','💡','🔌'],
-    cast:{ h:{n:'роботёнок Винтик', e:'🤖', g:'m'}, v:{n:'Механикус', e:'🦾', g:'m'} },
-    intro:[
-      ['h','Бип-бип! Я роботёнок Винтик! У нас на планете всё было по порядку... а теперь узоры и ряды перепутались. Почини их, {N}!'],
-      ['v','Я — Механикус. Без моего экзамена дальше не пройдёт никто. Логика или ничего!'],
-      ['p','Мы обожаем загадки! Начинаем, Винтик!'],
-    ],
+    cast:{ h:{n:{ru:'роботёнок Винтик', en:'Vintik the Little Robot'}, e:'🤖', g:'m'},
+           v:{n:{ru:'Механикус', en:'Mechanicus'}, e:'🦾', g:'m'} },
+    intro:{
+      ru:[
+        ['h','Бип-бип! Я роботёнок Винтик! У нас на планете всё было по порядку... а теперь узоры и ряды перепутались. Почини их, {N}!'],
+        ['v','Я — Механикус. Без моего экзамена дальше не пройдёт никто. Логика или ничего!'],
+        ['p','Мы обожаем загадки! Начинаем, Винтик!'],
+      ],
+      en:[
+        ['h','Beep-beep! I am Vintik the Little Robot! Everything on our planet used to be in order... but now the patterns and rows are all mixed up. Fix them, {N}!'],
+        ['v','I am Mechanicus. Nobody passes without my exam. Logic or nothing!'],
+        ['p','We love puzzles! Let’s start, Vintik!'],
+      ]
+    },
     levels:[
-      { title:'Продолжи ряд',       icon:'🔢', gen:c=>genSeq([1,2],'asc') },
-      { title:'Ряды наоборот',      icon:'🔁', gen:c=>genSeq([1,2],'desc') },
-      { title:'Прыжки через 2 и 3', icon:'🦘', gen:c=>genSeq([2,3]) },
-      { title:'Узоры из фигур',     icon:'🔷', gen:c=>genShapePattern([2]) },
-      { title:'Сложные узоры',      icon:'💠', gen:c=>genShapePattern([3]) },
-      { title:'Найди лишнее',       icon:'🔍', gen:c=>genOddOne() },
-      { title:'Логика Винтика',     icon:'💡', gen:c=>pick([()=>genSeq([1,2,3]),()=>genShapePattern([2,3]),()=>genOddOne()])() },
-      { title:'Экзамен Механикуса', icon:'🦾', boss:true, gen:c=>pick([()=>genSeq([2,3]),()=>genShapePattern([3]),()=>genOddOne()])() },
+      { title:{ru:'Продолжи ряд', en:'Continue the Row'},          icon:'🔢', gen:c=>genSeq([1,2],'asc') },
+      { title:{ru:'Ряды наоборот', en:'Rows Backwards'},           icon:'🔁', gen:c=>genSeq([1,2],'desc') },
+      { title:{ru:'Прыжки через 2 и 3', en:'Jumps of 2 and 3'},    icon:'🦘', gen:c=>genSeq([2,3]) },
+      { title:{ru:'Узоры из фигур', en:'Shape Patterns'},          icon:'🔷', gen:c=>genShapePattern([2]) },
+      { title:{ru:'Сложные узоры', en:'Tricky Patterns'},          icon:'💠', gen:c=>genShapePattern([3]) },
+      { title:{ru:'Найди лишнее', en:'Find the Odd One'},          icon:'🔍', gen:c=>genOddOne() },
+      { title:{ru:'Логика Винтика', en:'Vintik’s Logic'},          icon:'💡', gen:c=>pick([()=>genSeq([1,2,3]),()=>genShapePattern([2,3]),()=>genOddOne()])() },
+      { title:{ru:'Экзамен Механикуса', en:'Mechanicus’s Exam'},   icon:'🦾', boss:true, gen:c=>pick([()=>genSeq([2,3]),()=>genShapePattern([3]),()=>genOddOne()])() },
     ]
   },
   {
-    name:'Туманность времени', icon:'⏰', gate:74,
+    name:{ru:'Туманность времени', en:'Time Nebula'}, icon:'⏰', gate:74,
     tint:'linear-gradient(180deg, rgba(190,120,230,.20), rgba(100,60,140,.12))',
     deco:['🕐','📅','⏳','🌌'],
-    cast:{ h:{n:'сова Умница', e:'🦉', g:'f'}, v:{n:'хранитель Тик-Так', e:'⏱️', g:'m'} },
-    intro:[
-      ['h','Уху! Я сова Умница. В нашей туманности перепутались часы, дни недели и даже монетки. Наведём порядок вместе?'],
-      ['v','Тик-так, тик-так... Я хранитель времени. Отгадаешь мои загадки — пропущу. Нет — останешься здесь навсегда... тик-так!'],
-      ['p','Времени зря не теряем — за дело!'],
-    ],
+    cast:{ h:{n:{ru:'сова Умница', en:'Umnitsa the Owl'}, e:'🦉', g:'f'},
+           v:{n:{ru:'хранитель Тик-Так', en:'Tick-Tock the Timekeeper'}, e:'⏱️', g:'m'} },
+    intro:{
+      ru:[
+        ['h','Уху! Я сова Умница. В нашей туманности перепутались часы, дни недели и даже монетки. Наведём порядок вместе?'],
+        ['v','Тик-так, тик-так... Я хранитель времени. Отгадаешь мои загадки — пропущу. Нет — останешься здесь навсегда... тик-так!'],
+        ['p','Времени зря не теряем — за дело!'],
+      ],
+      en:[
+        ['h','Hoo-hoo! I am Umnitsa the Owl. In our nebula the clocks, weekdays and even the coins got all mixed up. Shall we tidy up together?'],
+        ['v','Tick-tock, tick-tock... I am the Timekeeper. Solve my riddles and I will let you pass. If not — you stay here forever... tick-tock!'],
+        ['p','No time to waste — let’s do this!'],
+      ]
+    },
     levels:[
-      { title:'Который час?',     icon:'🕒', gen:c=>genClock('fwd1') },
-      { title:'Часы вперёд',      icon:'⏩', gen:c=>genClock('fwd') },
-      { title:'Час назад',        icon:'⏪', gen:c=>genClock('back') },
-      { title:'Что будет завтра?',icon:'📅', gen:c=>genDays('tomorrow') },
-      { title:'Что было вчера?',  icon:'🗓️', gen:c=>genDays('yesterday') },
-      { title:'Монетки',          icon:'🪙', gen:c=>genMoney(c,[2]) },
-      { title:'Копилка',          icon:'🐷', gen:c=>genMoney(c,[3,4]) },
-      { title:'Микс Умницы',      icon:'🦉', gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c,[2,3])])() },
-      { title:'Загадки Тик-Така', icon:'⏱️', boss:true, gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c,[3,4])])() },
+      { title:{ru:'Который час?', en:'What Time Is It?'},        icon:'🕒', gen:c=>genClock('fwd1') },
+      { title:{ru:'Часы вперёд', en:'Clock Forward'},            icon:'⏩', gen:c=>genClock('fwd') },
+      { title:{ru:'Час назад', en:'An Hour Ago'},                icon:'⏪', gen:c=>genClock('back') },
+      { title:{ru:'Что будет завтра?', en:'What’s Tomorrow?'},   icon:'📅', gen:c=>genDays('tomorrow') },
+      { title:{ru:'Что было вчера?', en:'What Was Yesterday?'},  icon:'🗓️', gen:c=>genDays('yesterday') },
+      { title:{ru:'Монетки', en:'Coins'},                        icon:'🪙', gen:c=>genMoney(c,[2]) },
+      { title:{ru:'Копилка', en:'Piggy Bank'},                   icon:'🐷', gen:c=>genMoney(c,[3,4]) },
+      { title:{ru:'Микс Умницы', en:'Umnitsa’s Mix'},            icon:'🦉', gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c,[2,3])])() },
+      { title:{ru:'Загадки Тик-Така', en:'Tick-Tock’s Riddles'}, icon:'⏱️', boss:true, gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c,[3,4])])() },
     ]
   },
   {
-    name:'Дальний космос', icon:'🔭', gate:95,
+    name:{ru:'Дальний космос', en:'Deep Space'}, icon:'🔭', gate:95,
     tint:'linear-gradient(180deg, rgba(60,60,140,.30), rgba(20,20,60,.20))',
     deco:['🌠','🌀','🛸','🌟'],
-    cast:{ h:{n:'капитан Галактион', e:'👨‍🚀', g:'m'}, v:{n:'чёрная дыра Мгла', e:'🕳️', g:'f'} },
-    intro:[
-      ['h','Приветствую, {N}! Капитан Галактион на связи. Ты у самого края карты — впереди самые сложные задания галактики!'],
-      ['v','Я — Мгла. Всё, что подлетает близко, исчезает во мне... даже правильные ответы!'],
-      ['p','Мы не боимся темноты. Полный вперёд!'],
-    ],
+    cast:{ h:{n:{ru:'капитан Галактион', en:'Captain Galaktion'}, e:'👨‍🚀', g:'m'},
+           v:{n:{ru:'чёрная дыра Мгла', en:'Murk the Black Hole'}, e:'🕳️', g:'f'} },
+    intro:{
+      ru:[
+        ['h','Приветствую, {N}! Капитан Галактион на связи. Ты у самого края карты — впереди самые сложные задания галактики!'],
+        ['v','Я — Мгла. Всё, что подлетает близко, исчезает во мне... даже правильные ответы!'],
+        ['p','Мы не боимся темноты. Полный вперёд!'],
+      ],
+      en:[
+        ['h','Greetings, {N}! Captain Galaktion speaking. You are at the very edge of the map — the hardest missions in the galaxy lie ahead!'],
+        ['v','I am Murk. Everything that flies too close disappears inside me... even correct answers!'],
+        ['p','We are not afraid of the dark. Full speed ahead!'],
+      ]
+    },
     levels:[
-      { title:'Смешанные задачи',  icon:'🌟', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genCompare(1,9)])() },
-      { title:'Гипер-задачи',      icon:'🚀', gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c)])() },
-      { title:'Задачи-истории',    icon:'📖', gen:c=>genStory(c) },
-      { title:'Большие ряды',      icon:'🔢', gen:c=>genSeq([2,3]) },
-      { title:'Два действия: макс',icon:'🌀', gen:c=>genTwoStep(c,true) },
-      { title:'Всё до 20',         icon:'💫', gen:c=>pick([()=>genCount20(11,20),()=>genAddCross(c,true),()=>genCompare(8,20)])() },
-      { title:'Испытание Мглы',    icon:'🕳️', boss:true, gen:c=>pick([()=>genTwoStep(c,true),()=>genStory(c),()=>genAddCross(c,true),()=>genSeq([2,3])])() },
+      { title:{ru:'Смешанные задачи', en:'Mixed Problems'},      icon:'🌟', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c,10),()=>genCompare(1,9)])() },
+      { title:{ru:'Гипер-задачи', en:'Hyper Problems'},          icon:'🚀', gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c)])() },
+      { title:{ru:'Задачи-истории', en:'Story Problems'},        icon:'📖', gen:c=>genStory(c) },
+      { title:{ru:'Большие ряды', en:'Big Rows'},                icon:'🔢', gen:c=>genSeq([2,3]) },
+      { title:{ru:'Два действия: макс', en:'Two Steps: Max'},    icon:'🌀', gen:c=>genTwoStep(c,true) },
+      { title:{ru:'Всё до 20', en:'Everything to 20'},           icon:'💫', gen:c=>pick([()=>genCount20(11,20),()=>genAddCross(c,true),()=>genCompare(8,20)])() },
+      { title:{ru:'Испытание Мглы', en:'Murk’s Challenge'},      icon:'🕳️', boss:true, gen:c=>pick([()=>genTwoStep(c,true),()=>genStory(c),()=>genAddCross(c,true),()=>genSeq([2,3])])() },
     ]
   },
 ];
@@ -1031,12 +1154,15 @@ const app = document.getElementById('app');
 /* fixed chrome: sound button (top right) + bottom nav */
 document.body.insertAdjacentHTML('beforeend',
   '<button class="sound-fab" id="soundFab" onclick="toggleSound()">🔊</button>'+
-  '<nav class="bottomnav" id="bottomNav">'+
-  '<button class="nav-btn" data-s="map" onclick="renderHome()"><span class="ic">🗺️</span>Карта</button>'+
-  '<button class="nav-btn" data-s="practice" onclick="renderPractice()"><span class="ic">🔁</span>Повторение</button>'+
-  '<button class="nav-btn" data-s="achieve" onclick="renderAchievements()"><span class="ic">🏆</span>Награды</button>'+
-  '<button class="nav-btn" data-s="profile" onclick="renderCharScreen()"><span class="ic"><span class="nav-avatar" id="navAv">😺</span></span>Профиль</button>'+
-  '</nav>');
+  '<nav class="bottomnav" id="bottomNav"></nav>');
+function buildNav(){
+  document.getElementById('bottomNav').innerHTML =
+    '<button class="nav-btn" data-s="map" onclick="renderHome()"><span class="ic">🗺️</span>'+tr('Карта','Map')+'</button>'+
+    '<button class="nav-btn" data-s="practice" onclick="renderPractice()"><span class="ic">🔁</span>'+tr('Повторение','Practice')+'</button>'+
+    '<button class="nav-btn" data-s="achieve" onclick="renderAchievements()"><span class="ic">🏆</span>'+tr('Награды','Awards')+'</button>'+
+    '<button class="nav-btn" data-s="profile" onclick="renderCharScreen()"><span class="ic"><span class="nav-avatar" id="navAv">😺</span></span>'+tr('Профиль','Profile')+'</button>';
+}
+buildNav();
 
 function setChrome(screen){
   const f = document.getElementById('soundFab');
@@ -1064,16 +1190,18 @@ function renderHome(){
   let html =
     '<div class="hero">'+
     '<div class="avatar3d'+(state.char.g==='f'?' girl':'')+'" onclick="showCharCard()" '+
-      'title="Карточка героя" style="background-image:url(\''+
+      'title="'+tr('Карточка героя','Hero card')+'" style="background-image:url(\''+
       charImg(state.char.g, r.idx)+'\')"></div>'+
     '<div class="hero-info">'+
     '<h1>'+N()+'</h1>'+
     '<div class="rank">'+T()+' • <span class="rank-pill">'+r.icon+' '+r.name+'</span></div>'+
     '<div class="xprow"><b>'+state.xp+' XP</b><span>'+
-      (r.next ? 'До ранга «'+r.next[1]+'»: '+(r.next[0]-state.xp)+' XP' : 'Максимальный ранг!')+'</span></div>'+
+      (r.next ? tr('До ранга «'+r.next.name+'»: '+(r.next.xp-state.xp)+' XP',
+                   'To rank “'+r.next.name+'”: '+(r.next.xp-state.xp)+' XP')
+              : tr('Максимальный ранг!','Max rank!'))+'</span></div>'+
     '<div class="xpbar"><div style="width:'+r.pct+'%"></div></div>'+
     '<div class="hero-sep"></div>'+
-    '<div class="starcount">⭐ '+totalStars()+' из '+MAX_STARS+'</div>'+
+    '<div class="starcount">⭐ '+totalStars()+' '+tr('из','of')+' '+MAX_STARS+'</div>'+
     '</div></div>';
 
   html += '<div class="map">';
@@ -1081,12 +1209,12 @@ function renderHome(){
     const open = worldOpen(wi);
     const deco = w.deco.map((d,i)=>'<span class="deco" style="'+DECO_POS[i%4]+'">'+d+'</span>').join('');
     html += '<div class="world" style="background:'+w.tint+'">'+deco+
-      '<div class="world-head"><h2>'+w.icon+' '+w.name+'</h2>';
+      '<div class="world-head"><h2>'+w.icon+' '+w.name[LANG()]+'</h2>';
     if (open){
       html += '<div class="world-npc">'+
-        '<span class="npc-pill h">'+w.cast.h.n+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
-        ' ждёт помощи · берегись: '+
-        '<span class="npc-pill v">'+w.cast.v.n+' <span class="npc-em">'+w.cast.v.e+'</span></span>!'+
+        '<span class="npc-pill h">'+hn(w.cast)+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
+        tr(' ждёт помощи · берегись: ', ' needs your help · beware of ')+
+        '<span class="npc-pill v">'+vn(w.cast)+' <span class="npc-em">'+w.cast.v.e+'</span></span>!'+
         '</div></div>';
       html += '<div class="path">';
       w.levels.forEach((L, li)=>{
@@ -1099,41 +1227,52 @@ function renderHome(){
           (isCurrent ? '<span class="rocket-marker">🚀</span>' : '')+
           (!lOpen?'🔒':L.icon)+
           (lOpen?'<span class="stars">'+'★'.repeat(stars)+'☆'.repeat(3-stars)+'</span>':'')+
-          '<span class="node-label">'+L.title+'</span></button></div>';
+          '<span class="node-label">'+L.title[LANG()]+'</span></button></div>';
       });
       html += '</div>';
     } else {
       html += '</div><div class="world-locked-body"><span class="lock">🔒</span>'+
-        'Собери <b style="color:#ffd76e">⭐ '+w.gate+'</b>, чтобы открыть этот мир!<br>'+
-        '<small>У тебя пока ⭐ '+totalStars()+'</small></div>';
+        tr('Собери <b style="color:#ffd76e">⭐ '+w.gate+'</b>, чтобы открыть этот мир!<br><small>У тебя пока ⭐ '+totalStars()+'</small>',
+           'Collect <b style="color:#ffd76e">⭐ '+w.gate+'</b> to unlock this world!<br><small>You have ⭐ '+totalStars()+' so far</small>')+
+        '</div>';
     }
     html += '</div>';
     if (wi < WORLDS.length-1) html += '<div class="connector"></div>';
   });
   html += '</div>';
 
-  html += '<button class="reset" onclick="resetProgress()">сбросить прогресс</button>';
-  html += '<div class="legal">© 2026 Dmitrii Satinaev · <a href="about.html">о приложении</a></div>';
+  html += '<button class="reset" onclick="resetProgress()">'+tr('сбросить прогресс','reset progress')+'</button>';
+  html += '<div class="legal">© 2026 Dmitrii Satinaev · <a href="about.html">'+tr('о приложении','about')+'</a></div>';
   app.innerHTML = html;
 }
 
 /* ---------- character game card ---------- */
 const CHAR_DESCS = {
-  f: [
-    'Мурлычет громче ракетного двигателя, когда решает примеры.',
-    'Сосчитала все звёзды в иллюминаторе. Дважды. Для надёжности.',
-    'Прячет космопончики под скафандром. Все это знают, но молчат.',
-    'Однажды обогнала комету. Комета до сих пор дуется.',
-    'Умывается 14 раз в день. Даже в невесомости.',
-    'Может уснуть в любой точке галактики. Особенно на клавиатуре звездолёта.'
-  ],
-  m: [
-    'Мурлычет громче ракетного двигателя, когда решает примеры.',
-    'Сосчитал все звёзды в иллюминаторе. Дважды. Для надёжности.',
-    'Прячет космопончики под скафандром. Все это знают, но молчат.',
-    'Однажды обогнал комету. Комета до сих пор дуется.',
-    'Точит когти только о специальный астероид. Он воспитанный.',
-    'Может уснуть в любой точке галактики. Особенно на клавиатуре звездолёта.'
+  ru: {
+    f: [
+      'Мурлычет громче ракетного двигателя, когда решает примеры.',
+      'Сосчитала все звёзды в иллюминаторе. Дважды. Для надёжности.',
+      'Прячет космопончики под скафандром. Все это знают, но молчат.',
+      'Однажды обогнала комету. Комета до сих пор дуется.',
+      'Умывается 14 раз в день. Даже в невесомости.',
+      'Может уснуть в любой точке галактики. Особенно на клавиатуре звездолёта.'
+    ],
+    m: [
+      'Мурлычет громче ракетного двигателя, когда решает примеры.',
+      'Сосчитал все звёзды в иллюминаторе. Дважды. Для надёжности.',
+      'Прячет космопончики под скафандром. Все это знают, но молчат.',
+      'Однажды обогнал комету. Комета до сих пор дуется.',
+      'Точит когти только о специальный астероид. Он воспитанный.',
+      'Может уснуть в любой точке галактики. Особенно на клавиатуре звездолёта.'
+    ]
+  },
+  en: [
+    'Purrs louder than a rocket engine when solving math problems.',
+    'Counted every star in the porthole. Twice. Just to be sure.',
+    'Hides space donuts inside the spacesuit. Everyone knows, nobody tells.',
+    'Once outran a comet. The comet is still sulking.',
+    'Can fall asleep anywhere in the galaxy. Especially on the starship keyboard.',
+    'Sharpens claws only on a special asteroid. Very well-mannered.'
   ]
 };
 
@@ -1153,12 +1292,12 @@ function showCharCard(){
     '<div class="gc-art" style="background-image:url(\''+charImg(state.char.g, r.idx)+'\')">'+
       '<div class="gc-name">'+N()+'</div></div>'+
     '<div class="gc-rows">'+
-    '<div class="gc-row"><span class="lbl">🎖️ Ранг</span><span class="val"><span class="rank-pill">'+r.icon+' '+r.name+'</span></span></div>'+
-    '<div class="gc-row"><span class="lbl">🚀 Уровень героя</span><span class="val">'+(r.idx+1)+' из '+RANKS.length+'</span></div>'+
-    '<div class="gc-row"><span class="lbl">✨ Опыт</span><span class="val">'+state.xp+' XP</span></div>'+
-    '<div class="gc-row"><span class="lbl">⭐ Звёзды</span><span class="val">'+totalStars()+' из '+MAX_STARS+'</span></div>'+
+    '<div class="gc-row"><span class="lbl">🎖️ '+tr('Ранг','Rank')+'</span><span class="val"><span class="rank-pill">'+r.icon+' '+r.name+'</span></span></div>'+
+    '<div class="gc-row"><span class="lbl">🚀 '+tr('Уровень героя','Hero level')+'</span><span class="val">'+(r.idx+1)+' '+tr('из','of')+' '+RANKS.length+'</span></div>'+
+    '<div class="gc-row"><span class="lbl">✨ '+tr('Опыт','Experience')+'</span><span class="val">'+state.xp+' XP</span></div>'+
+    '<div class="gc-row"><span class="lbl">⭐ '+tr('Звёзды','Stars')+'</span><span class="val">'+totalStars()+' '+tr('из','of')+' '+MAX_STARS+'</span></div>'+
     '</div>'+
-    '<div class="gc-desc">«'+pick(CHAR_DESCS[state.char.g])+'»</div>'+
+    '<div class="gc-desc">«'+(LANG()==='en' ? pick(CHAR_DESCS.en) : pick(CHAR_DESCS.ru[state.char.g]))+'»</div>'+
     '</div></div>';
   document.body.appendChild(el);
 }
@@ -1168,8 +1307,8 @@ function closeCharCard(){
 }
 
 function resetProgress(){
-  if (confirm('Точно начать сначала?')){
-    state = { xp:0, levelStars:{}, char:state.char, sound:state.sound, intros:{} };
+  if (confirm(tr('Точно начать сначала?','Really start over?'))){
+    state = { xp:0, levelStars:{}, char:state.char, sound:state.sound, intros:{}, lang:state.lang };
     save(); renderHome();
   }
 }
@@ -1186,18 +1325,20 @@ function passedPool(){
 function renderPractice(){
   setChrome('practice');
   const pool = passedPool();
-  let html = '<div class="char-title">🔁 Повторение</div>';
+  let html = '<div class="char-title">🔁 '+tr('Повторение','Practice')+'</div>';
   if (!pool.length){
-    html += '<div class="char-sub">Сначала пройди хотя бы один уровень на карте —<br>тогда его можно будет повторять здесь! 🚀</div>'+
-      '<button class="btn-next" onclick="renderHome()">На карту 🗺️</button>';
+    html += '<div class="char-sub">'+tr('Сначала пройди хотя бы один уровень на карте —<br>тогда его можно будет повторять здесь! 🚀',
+      'First finish at least one level on the map —<br>then you can practice it here! 🚀')+'</div>'+
+      '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>';
   } else {
-    html += '<div class="char-sub">Повторение — путь к рангу Адмирала!<br>Выбери тему или перемешай всё.</div>'+
-      '<button class="practice-all" onclick="startPracticeAll()">Повторить всё 🎲</button>'+
+    html += '<div class="char-sub">'+tr('Повторение — путь к рангу Адмирала!<br>Выбери тему или перемешай всё.',
+      'Practice is the way to Admiral!<br>Pick a topic or shuffle everything.')+'</div>'+
+      '<button class="practice-all" onclick="startPracticeAll()">'+tr('Повторить всё 🎲','Practice all 🎲')+'</button>'+
       '<div class="topic-grid">'+
       pool.map(p=>{
         const W = WORLDS[p.wi], L = W.levels[p.li];
         return '<button class="topic" onclick="startPractice('+p.wi+','+p.li+')">'+
-          L.icon+' '+L.title+'<span class="w">'+W.icon+' '+W.name+'</span></button>';
+          L.icon+' '+L.title[LANG()]+'<span class="w">'+W.icon+' '+W.name[LANG()]+'</span></button>';
       }).join('')+
       '</div>';
   }
@@ -1229,13 +1370,17 @@ function finishPractice(){
   app.innerHTML =
     '<div class="card complete">'+
     '<div class="big">💪</div>'+
-    '<h2 style="color:#5a34c9">Повторение — сила!</h2>'+
-    '<p>+'+bonus+' XP за тренировку!<br>'+
-    (cur.mistakes===0 ? 'Ни одной ошибки — блестяще! ✨' : 'Ошибок: '+cur.mistakes+'. В следующий раз получится ещё лучше!')+'</p>'+
+    '<h2 style="color:#5a34c9">'+tr('Повторение — сила!','Practice makes perfect!')+'</h2>'+
+    '<p>'+tr('+'+bonus+' XP за тренировку!','+'+bonus+' XP for training!')+'<br>'+
+    (cur.mistakes===0 ? tr('Ни одной ошибки — блестяще! ✨','No mistakes — brilliant! ✨')
+                      : tr('Ошибок: '+cur.mistakes+'. В следующий раз получится ещё лучше!',
+                           'Mistakes: '+cur.mistakes+'. Next time will be even better!'))+'</p>'+
     (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
-      '🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!<br><small>'+pick(QUOTES)+'</small></div>' : '')+
-    '<button class="btn-next" onclick="startPracticeSession()">Ещё раз 🔁</button>'+
-    '<button class="btn-next" onclick="renderPractice()" style="background:linear-gradient(180deg,#8f6bff,#6a3fe0);box-shadow:0 6px 0 #4a26a8">К темам 📚</button>'+
+      tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
+         '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
+      '<br><small>'+pick(QUOTES[LANG()])+'</small></div>' : '')+
+    '<button class="btn-next" onclick="startPracticeSession()">'+tr('Ещё раз 🔁','One more 🔁')+'</button>'+
+    '<button class="btn-next" onclick="renderPractice()" style="background:linear-gradient(180deg,#8f6bff,#6a3fe0);box-shadow:0 6px 0 #4a26a8">'+tr('К темам 📚','Topics 📚')+'</button>'+
     '</div>';
 }
 
@@ -1243,13 +1388,13 @@ function finishPractice(){
 function renderAchievements(){
   setChrome('achieve');
   app.innerHTML =
-    '<div class="char-title">🏆 Достижения</div>'+
-    '<div class="char-sub">Скоро! Здесь появятся награды за твои подвиги.</div>'+
-    '<div class="ach">🔒 <b>Первый шаг</b><br><small>Реши свои первые 10 задач</small></div>'+
-    '<div class="ach">🔒 <b>Без промаха</b><br><small>Пройди уровень без единой ошибки</small></div>'+
-    '<div class="ach">🔒 <b>Покоритель Луны</b><br><small>Открой все уровни Луны</small></div>'+
-    '<div class="ach">🔒 <b>Гроза пиратов</b><br><small>Победи пирата Крыса на босс-уровне</small></div>'+
-    '<div class="ach">🔒 <b>Адмирал Галактики</b><br><small>Достигни высшего ранга</small></div>';
+    '<div class="char-title">🏆 '+tr('Достижения','Achievements')+'</div>'+
+    '<div class="char-sub">'+tr('Скоро! Здесь появятся награды за твои подвиги.','Coming soon! Awards for your feats will appear here.')+'</div>'+
+    '<div class="ach">🔒 <b>'+tr('Первый шаг','First Step')+'</b><br><small>'+tr('Реши свои первые 10 задач','Solve your first 10 problems')+'</small></div>'+
+    '<div class="ach">🔒 <b>'+tr('Без промаха','Flawless')+'</b><br><small>'+tr('Пройди уровень без единой ошибки','Finish a level without a single mistake')+'</small></div>'+
+    '<div class="ach">🔒 <b>'+tr('Покоритель Луны','Moon Conqueror')+'</b><br><small>'+tr('Открой все уровни Луны','Unlock all Moon levels')+'</small></div>'+
+    '<div class="ach">🔒 <b>'+tr('Гроза пиратов','Pirate’s Bane')+'</b><br><small>'+tr('Победи пирата Крыса на босс-уровне','Beat Pirate Kryss on the boss level')+'</small></div>'+
+    '<div class="ach">🔒 <b>'+tr('Адмирал Галактики','Galaxy Admiral')+'</b><br><small>'+tr('Достигни высшего ранга','Reach the highest rank')+'</small></div>';
 }
 
 /* ---------- character screen ---------- */
@@ -1257,21 +1402,38 @@ function renderCharScreen(){
   setChrome('profile');
   app.innerHTML =
     '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
-    '<div class="char-title">Выбери героя ✨</div>'+
+    '<div class="char-title">'+tr('Выбери героя ✨','Choose your hero ✨')+'</div>'+
     '<div class="char-cards">'+
     '<button class="char-card'+(state.char.g==='f'?' sel':'')+'" onclick="setGender(\'f\')">'+
-      '<img class="char-full" src="'+charImg('f', rankInfo().idx)+'" alt="Астрокошка">Астрокошка</button>'+
+      '<img class="char-full" src="'+charImg('f', rankInfo().idx)+'" alt="">'+tr('Астрокошка','Astrocat')+'</button>'+
     '<button class="char-card'+(state.char.g==='m'?' sel':'')+'" onclick="setGender(\'m\')">'+
-      '<img class="char-full" src="'+charImg('m', rankInfo().idx)+'" alt="Космокот">Космокот</button>'+
+      '<img class="char-full" src="'+charImg('m', rankInfo().idx)+'" alt="">'+tr('Космокот','Cosmocat')+'</button>'+
     '</div>'+
-    '<div class="char-sub">Как зовут твоего героя?</div>'+
+    '<div class="char-sub">'+tr('Как зовут твоего героя?','What is your hero’s name?')+'</div>'+
     '<input class="name-input" id="nameInp" maxlength="12" value="'+N()+'">'+
-    '<button class="btn-next" onclick="saveChar()">Сохранить ✓</button>'+
-    '<div class="char-sub" style="margin-top:34px">💾 Код спасения — чтобы перенести прогресс<br>на другое устройство (для взрослых)</div>'+
-    '<button class="topic" onclick="showSaveCode()">Показать мой код</button> '+
-    '<button class="topic" onclick="enterSaveCode()">Ввести код</button>'+
+    '<button class="btn-next" onclick="saveChar()">'+tr('Сохранить ✓','Save ✓')+'</button>'+
+    '<div class="char-sub" style="margin-top:30px">🌐 '+tr('Язык','Language')+'</div>'+
+    '<div class="topic-grid" style="margin-top:4px">'+
+    '<button class="topic'+(LANG()==='ru'?' sel':'')+'" onclick="setLang(\'ru\')">🇷🇺 Русский</button>'+
+    '<button class="topic'+(LANG()==='en'?' sel':'')+'" onclick="setLang(\'en\')">🇬🇧 English</button>'+
+    '</div>'+
+    '<div class="char-sub" style="margin-top:30px">💾 '+
+      tr('Код спасения — чтобы перенести прогресс<br>на другое устройство (для взрослых)',
+         'Rescue code — to move progress<br>to another device (for grown-ups)')+'</div>'+
+    '<button class="topic" onclick="showSaveCode()">'+tr('Показать мой код','Show my code')+'</button> '+
+    '<button class="topic" onclick="enterSaveCode()">'+tr('Ввести код','Enter a code')+'</button>'+
     '<div id="codeOut" style="text-align:center;font-size:12px;word-break:break-all;'+
       'margin:10px auto;max-width:320px;opacity:.85"></div>';
+}
+
+function setLang(l){
+  if (state.lang === l) return;
+  grabName();
+  // if the name is still a default, translate it too
+  const isDefault = ['f','m'].some(g => ['ru','en'].some(lg => state.char.name === DEFAULT_NAMES[g][lg]));
+  state.lang = l;
+  if (isDefault) state.char.name = DEFAULT_NAMES[state.char.g][l];
+  save(); sndClick(); buildNav(); renderCharScreen();
 }
 
 /* ---------- rescue code (export/import progress) ---------- */
@@ -1285,12 +1447,12 @@ function showSaveCode(){
   out.textContent = code;
   if (navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(code)
-      .then(()=>{ out.textContent = '✅ Код скопирован!\n'+code; })
+      .then(()=>{ out.textContent = tr('✅ Код скопирован!','✅ Code copied!')+'\n'+code; })
       .catch(()=>{});
   }
 }
 function enterSaveCode(){
-  const code = prompt('Вставь код спасения:');
+  const code = prompt(tr('Вставь код спасения:','Paste the rescue code:'));
   if (!code) return;
   try {
     const s = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
@@ -1298,9 +1460,10 @@ function enterSaveCode(){
     state = s;
     if (!state.intros) state.intros = {};
     if (state.sound === undefined) state.sound = true;
-    save(); sndWin(); renderHome();
+    save(); sndWin(); buildNav(); renderHome();
   } catch(e){
-    alert('Хм, код не подошёл. Проверь, что он скопирован целиком!');
+    alert(tr('Хм, код не подошёл. Проверь, что он скопирован целиком!',
+             'Hmm, that code did not work. Make sure you copied all of it!'));
   }
 }
 function grabName(){
@@ -1312,8 +1475,8 @@ function grabName(){
 }
 function setGender(g){
   grabName();
-  if (state.char.name === DEFAULT_NAMES.f || state.char.name === DEFAULT_NAMES.m)
-    state.char.name = DEFAULT_NAMES[g];
+  const isDefault = ['f','m'].some(gg => ['ru','en'].some(lg => state.char.name === DEFAULT_NAMES[gg][lg]));
+  if (isDefault) state.char.name = DEFAULT_NAMES[g][LANG()];
   state.char.g = g;
   save(); sndClick(); renderCharScreen();
 }
@@ -1324,30 +1487,32 @@ function renderIntro(wi, li, idx){
   setChrome('task');
   sndClick();
   const W = WORLDS[wi];
-  const line = W.intro[idx];
-  const who = line[0]==='h' ? W.cast.h
-            : line[0]==='v' ? W.cast.v
-            : { n:T()+' '+N(), e:AV() };
+  const lines = W.intro[LANG()];
+  const line = lines[idx];
+  const whoName = line[0]==='h' ? hn(W.cast)
+                : line[0]==='v' ? vn(W.cast)
+                : T()+' '+N();
+  const whoE = line[0]==='h' ? W.cast.h.e : line[0]==='v' ? W.cast.v.e : AV();
   const text = line[1].replace(/\{N\}/g, N());
-  const last = idx === W.intro.length - 1;
-  const dots = W.intro.map((_,i)=> i===idx?'●':'○').join(' ');
+  const last = idx === lines.length - 1;
+  const dots = lines.map((_,i)=> i===idx?'●':'○').join(' ');
   const speaker = line[0]==='p'
     ? '<img class="speaker-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
-    : '<span class="speaker">'+who.e+'</span>';
+    : '<span class="speaker">'+whoE+'</span>';
   app.innerHTML =
     '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
     '<div class="intro-scene">'+
-    '<div class="intro-world">'+W.icon+' '+W.name+'</div>'+
+    '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+'</div>'+
     speaker+
     '<div class="bubble'+(line[0]==='v'?' villain':'')+'" onclick="speak(this.textContent, true)">'+
-      '<span class="who">'+who.n+(ttsReady?' 🔊':'')+'</span>'+text+'</div>'+
+      '<span class="who">'+whoName+(ttsOk()?' 🔊':'')+'</span>'+text+'</div>'+
     '<button class="btn-next" onclick="'+
       (last ? 'introDone('+wi+','+li+')' : 'renderIntro('+wi+','+li+','+(idx+1)+')')+'">'+
-      (last ? 'В путь! 🚀' : 'Дальше ➜')+'</button>'+
+      (last ? tr('В путь! 🚀','Let’s go! 🚀') : tr('Дальше ➜','Next ➜'))+'</button>'+
     '<div class="intro-dots">'+dots+'</div>'+
     '</div>';
   if (line[0]==='v') beep(180,.25,0,'sawtooth',.05);
-  speak(who.n+'. '+text);   // auto-read the dialog line (tap the bubble to replay)
+  speak(whoName+'. '+text);   // auto-read the dialog line (tap the bubble to replay)
 }
 function introDone(wi, li){ state.intros[wi] = true; save(); beginLevel(wi, li); }
 
@@ -1366,8 +1531,10 @@ function beginLevel(wi, li){
   for (let i=0;i<TASKS_PER_LEVEL;i++) tasks.push(L.gen(W.cast));
   if (L.boss){
     const v = W.cast.v;
-    tasks[0].prompt = '<span class="villain">'+v.e+' <b>'+v.n+'</b> '+nvb(v,'преградил','преградила')+
-      ' путь: «Реши мои задачи — пропущу дальше!»</span><br><br>'+tasks[0].prompt;
+    tasks[0].prompt = '<span class="villain">'+v.e+' <b>'+vn(W.cast)+'</b> '+
+      tr(nvb(v,'преградил','преградила')+' путь: «Реши мои задачи — пропущу дальше!»',
+         'blocks the way: “Solve my tasks and I will let you pass!”')+
+      '</span><br><br>'+tasks[0].prompt;
   }
   cur = { wi, li, tasks, idx:0, mistakes:0, firstTry:true, input:'', rankBefore:rankInfo().name };
   renderTask();
@@ -1395,7 +1562,7 @@ function renderTask(){
     '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button>'+
     '<div class="progress"><div style="width:'+(100*cur.idx/TASKS_PER_LEVEL)+'%"></div></div></div>'+
     '<div class="card" id="card">'+
-    (ttsReady ? '<button class="say-btn" onclick="sayTask()" title="Прочитать вслух">🔊</button>' : '')+
+    (ttsOk() ? '<button class="say-btn" onclick="sayTask()" title="'+tr('Прочитать вслух','Read aloud')+'">🔊</button>' : '')+
     '<div class="prompt">'+t.prompt+'</div>'+
     '<div class="visual">'+t.visual+'</div>'+
     answerArea+
@@ -1431,11 +1598,11 @@ function correct(btn){
   state.xp += gained; save();
   sndCorrect();
   const fb = document.getElementById('fb');
-  fb.className = 'feedback good'; fb.textContent = pick(PRAISE)+' +'+gained+' XP';
+  fb.className = 'feedback good'; fb.textContent = pick(PRAISE[LANG()])+' +'+gained+' XP';
   confetti();
   document.getElementById('nextArea').innerHTML =
     '<button class="btn-next" onclick="nextTask()">'+
-    (cur.idx+1<TASKS_PER_LEVEL ? 'Дальше ➜' : 'Финиш! 🏁')+'</button>';
+    (cur.idx+1<TASKS_PER_LEVEL ? tr('Дальше ➜','Next ➜') : tr('Финиш! 🏁','Finish! 🏁'))+'</button>';
 }
 
 function wrong(btn){
@@ -1445,7 +1612,7 @@ function wrong(btn){
   const card = document.getElementById('card');
   card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
   const fb = document.getElementById('fb');
-  fb.className = 'feedback bad'; fb.textContent = pick(RETRY);
+  fb.className = 'feedback bad'; fb.textContent = pick(RETRY[LANG()]);
   const disp = document.getElementById('disp');
   if (disp) disp.textContent = ' ';
 }
@@ -1474,13 +1641,18 @@ function finishLevel(){
   app.innerHTML =
     '<div class="card complete">'+
     '<div class="big">🏆</div>'+
-    '<h2 style="color:#5a34c9">Уровень пройден!</h2>'+
+    '<h2 style="color:#5a34c9">'+tr('Уровень пройден!','Level complete!')+'</h2>'+
     '<div class="gotstars">'+'⭐'.repeat(stars)+'<span style="filter:grayscale(1);opacity:.4">'+'⭐'.repeat(3-stars)+'</span></div>'+
-    '<p>+'+bonus+' XP бонус за уровень!<br>'+T()+' '+N()+' — молодец! '+AV()+'🚀</p>'+
+    '<p>'+tr('+'+bonus+' XP бонус за уровень!<br>'+T()+' '+N()+' — молодец! ',
+             '+'+bonus+' XP level bonus!<br>'+T()+' '+N()+' — well done! ')+AV()+'🚀</p>'+
     (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
-      '🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!<br><small>'+pick(QUOTES)+'</small></div>' : '')+
-    (newWorld ? '<div class="unlock-banner">🎉 Открыт новый мир: <b>'+newWorld.icon+' '+newWorld.name+'</b>!</div>' : '')+
-    '<button class="btn-next" onclick="renderHome()">На карту 🗺️</button>'+
+      tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
+         '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
+      '<br><small>'+pick(QUOTES[LANG()])+'</small></div>' : '')+
+    (newWorld ? '<div class="unlock-banner">'+
+      tr('🎉 Открыт новый мир: <b>'+newWorld.icon+' '+newWorld.name[LANG()]+'</b>!',
+         '🎉 New world unlocked: <b>'+newWorld.icon+' '+newWorld.name[LANG()]+'</b>!')+'</div>' : '')+
+    '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>'+
     '</div>';
 }
 
