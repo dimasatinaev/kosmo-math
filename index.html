@@ -63,7 +63,7 @@
     position:relative;
     background:linear-gradient(160deg, rgba(255,255,255,.11), rgba(255,255,255,.04));
     border:1px solid rgba(255,255,255,.18);
-    border-radius:26px; padding:16px; display:flex; gap:16px; align-items:center;
+    border-radius:26px; padding:16px; display:flex; gap:16px; align-items:flex-start;
     backdrop-filter:blur(8px); margin-bottom:22px;
     box-shadow:0 16px 40px rgba(0,0,0,.35), 0 0 60px rgba(120,80,230,.15),
       inset 0 1px 0 rgba(255,255,255,.14);
@@ -89,7 +89,6 @@
   }
   .xprow { display:flex; justify-content:space-between; align-items:baseline; gap:10px;
     font-size:12px; margin:10px 0 6px; opacity:.92; }
-  .hero-sep { border-top:1px solid rgba(255,255,255,.14); margin:12px 0 8px; }
   .char-full { width:100%; max-width:150px; height:auto; display:block; margin:0 auto 8px;
     border-radius:18px; border:2px solid rgba(255,255,255,.3);
     box-shadow:0 8px 20px rgba(0,0,0,.35); }
@@ -99,9 +98,18 @@
   .rankup-img { width:150px; height:150px; display:block; margin:4px auto;
     border-radius:20px; border:2px solid #ffd76e; object-fit:cover;
     box-shadow:0 8px 20px rgba(255,179,64,.3); }
-  .hero h1 { font-size:26px; margin-bottom:0; padding-right:40px;
-    text-shadow:0 2px 8px rgba(0,0,0,.4); }
-  .rank { font-size:13px; color:#ffd76e; margin-bottom:8px; opacity:.95; }
+  .name-row { display:flex; justify-content:space-between; align-items:baseline;
+    gap:10px; padding-right:36px; }
+  .hero h1 { font-size:26px; margin-bottom:0; text-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .starcount { font-size:15px; white-space:nowrap; }
+  .rank { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  .class-pill {
+    display:inline-flex; align-items:center; color:#fff;
+    padding:3px 13px; border-radius:999px; font-size:13px; font-weight:bold;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 3px 8px rgba(0,0,0,.25);
+  }
+  .class-pill.girl { background:linear-gradient(180deg,#ff9ecf,#d94f92); }
+  .class-pill.boy  { background:linear-gradient(180deg,#7d8cff,#5560e0); }
 
   /* ---------- character game card modal ---------- */
   .card-overlay {
@@ -224,7 +232,7 @@
   }
   .world-head { text-align:center; padding:14px 6px 2px; position:relative; z-index:2; }
   .world-head h2 { font-size:22px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
-  .world-npc { font-size:12.5px; opacity:.95; margin-top:6px; line-height:1.9; padding:0 4px; }
+  .world-npc { font-size:12.5px; opacity:.95; margin-top:8px; line-height:2.4; padding:0 4px; }
   .npc-pill {
     display:inline-flex; align-items:center; gap:5px; vertical-align:middle;
     padding:2px 3px 2px 10px; border-radius:999px; font-size:12.5px; font-weight:bold;
@@ -1193,15 +1201,16 @@ function renderHome(){
       'title="'+tr('Карточка героя','Hero card')+'" style="background-image:url(\''+
       charImg(state.char.g, r.idx)+'\')"></div>'+
     '<div class="hero-info">'+
-    '<h1>'+N()+'</h1>'+
-    '<div class="rank">'+T()+' • <span class="rank-pill">'+r.icon+' '+r.name+'</span></div>'+
+    '<div class="name-row"><h1>'+N()+'</h1>'+
+      '<span class="starcount">⭐ '+totalStars()+' '+tr('из','of')+' '+MAX_STARS+'</span></div>'+
+    '<div class="rank">'+
+      '<span class="class-pill '+(state.char.g==='f'?'girl':'boy')+'">'+T()+'</span>'+
+      '<span class="rank-pill">'+r.name+'</span></div>'+
     '<div class="xprow"><b>'+state.xp+' XP</b><span>'+
       (r.next ? tr('До ранга «'+r.next.name+'»: '+(r.next.xp-state.xp)+' XP',
                    'To rank “'+r.next.name+'”: '+(r.next.xp-state.xp)+' XP')
               : tr('Максимальный ранг!','Max rank!'))+'</span></div>'+
     '<div class="xpbar"><div style="width:'+r.pct+'%"></div></div>'+
-    '<div class="hero-sep"></div>'+
-    '<div class="starcount">⭐ '+totalStars()+' '+tr('из','of')+' '+MAX_STARS+'</div>'+
     '</div></div>';
 
   html += '<div class="map">';
