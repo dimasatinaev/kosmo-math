@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#12123f">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Космоматика">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>Космоматематика 🚀</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation; }
+  button, .node, .visual, h1, h2 { user-select:none; -webkit-user-select:none; }
+  html,body { height:100%; }
+  body {
+    font-family:'Comic Sans MS','Chalkboard SE','Segoe UI',sans-serif;
+    background:#12123f;
+    color:#fff; min-height:100vh; overflow-x:hidden;
+  }
+  /* fixed, non-scrolling gradient (pseudo-element: reliable on iOS too) */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:linear-gradient(180deg,#12123f 0%,#2d1b69 55%,#41277e 100%);
+  }
+  /* parallax star field: 3 fixed layers, subtle drift + scroll parallax */
+  .star-layer { position:fixed; top:0; left:0; width:100%; height:160vh;
+    pointer-events:none; z-index:0; will-change:transform; }
+  .star-drift { position:absolute; inset:0;
+    animation:drift ease-in-out infinite alternate; }
+  @keyframes drift { from{transform:translate(0,0);} to{transform:translate(-24px,30px);} }
+  .bg-star { position:absolute; border-radius:50%; background:#fff; opacity:.6;
+    animation:twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100%{opacity:.15;} 50%{opacity:.8;} }
+
+  #app { position:relative; z-index:1; max-width:560px; margin:0 auto;
+    padding:calc(12px + env(safe-area-inset-top)) 14px calc(100px + env(safe-area-inset-bottom)); }
+
+  /* ---------- header ---------- */
+  .hero {
+    position:relative;
+    background:rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.25);
+    border-radius:22px; padding:14px 16px; display:flex; gap:14px; align-items:center;
+    backdrop-filter:blur(4px); margin-bottom:22px;
+  }
+  .avatar {
+    width:72px; height:72px; border-radius:50%; flex-shrink:0;
+    background:radial-gradient(circle at 30% 30%,#ffd76e,#ff9040);
+    display:flex; align-items:center; justify-content:center; font-size:40px;
+    box-shadow:0 0 18px rgba(255,190,80,.55);
+  }
+  .avatar.girl { background:radial-gradient(circle at 30% 30%,#ff9ecf,#d94f92);
+    box-shadow:0 0 18px rgba(255,130,190,.55); }
+  .avatar.face { background-color:rgba(255,255,255,.9); background-size:contain;
+    background-position:center; background-repeat:no-repeat;
+    width:86px; height:104px; border-radius:18px; }
+  .char-full { height:140px; display:block; margin:0 auto 8px;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+  .speaker-img { height:130px; display:block; margin:10px auto 4px; animation:pop .4s;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+  .rankup-img { height:150px; display:block; margin:4px auto; }
+  .hero h1 { font-size:19px; margin-bottom:2px; padding-right:40px; }
+  .rank { font-size:14px; color:#ffd76e; margin-bottom:6px; }
+
+  /* ---------- floating sound + bottom nav ---------- */
+  .sound-fab {
+    position:fixed; top:calc(10px + env(safe-area-inset-top)); right:12px; z-index:70;
+    width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,.25);
+    font-size:19px; cursor:pointer; color:#fff;
+    background:rgba(30,24,80,.75); backdrop-filter:blur(8px);
+  }
+  .bottomnav {
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(10px + env(safe-area-inset-bottom)); z-index:70;
+    display:flex; gap:4px; padding:6px 8px;
+    background:rgba(24,18,70,.88); backdrop-filter:blur(10px);
+    border:2px solid rgba(255,255,255,.22); border-radius:26px;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  .nav-btn {
+    background:none; border:none; color:#fff; font-family:inherit; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size:11px; padding:6px 12px; border-radius:18px; opacity:.7;
+  }
+  .nav-btn .ic { font-size:22px; line-height:1; height:26px; display:flex; align-items:center; }
+  .nav-btn.active { opacity:1; background:rgba(255,255,255,.14); }
+  .nav-avatar {
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:16px;
+    background:radial-gradient(circle at 30% 30%,#ffd76e,#ff9040);
+  }
+  .nav-avatar.girl { background:radial-gradient(circle at 30% 30%,#ff9ecf,#d94f92); }
+  .nav-avatar.img { background-color:#fff; background-size:190%; background-position:50% 10%;
+    background-repeat:no-repeat; font-size:0; }
+
+  /* ---------- practice & achievements ---------- */
+  .practice-all {
+    display:block; margin:16px auto; padding:16px 36px; font-size:20px; font-family:inherit;
+    font-weight:bold; border:none; border-radius:20px; cursor:pointer; color:#fff;
+    background:linear-gradient(180deg,#5fe19a,#1faf62); box-shadow:0 6px 0 #12824a;
+  }
+  .practice-all:active { transform:translateY(4px); box-shadow:0 2px 0 #12824a; }
+  .topic-grid { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:14px; }
+  .topic {
+    background:rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.25); border-radius:16px;
+    padding:10px 14px; cursor:pointer; color:#fff; font-family:inherit; font-size:14px;
+  }
+  .topic:active { background:rgba(255,255,255,.2); }
+  .topic .w { opacity:.7; font-size:12px; display:block; }
+  .ach {
+    background:rgba(255,255,255,.08); border:2px dashed rgba(255,255,255,.2); border-radius:16px;
+    padding:14px 16px; margin:10px auto; max-width:360px; font-size:15px; opacity:.75; text-align:left;
+  }
+  .xpbar { height:12px; background:rgba(0,0,0,.35); border-radius:8px; overflow:hidden; }
+  .xpbar > div { height:100%; background:linear-gradient(90deg,#6ee7a0,#2fd573); border-radius:8px; transition:width .6s; }
+  .xptext { font-size:11px; opacity:.85; margin-top:3px; }
+  .starcount { font-size:15px; margin-top:4px; }
+
+  /* ---------- worlds ---------- */
+  .world {
+    position:relative; border-radius:26px; margin-bottom:24px; overflow:hidden;
+    border:2px solid rgba(255,255,255,.15); padding-bottom:10px;
+  }
+  .world-head { text-align:center; padding:16px 12px 4px; position:relative; z-index:2; }
+  .world-head h2 { font-size:22px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
+  .world-npc { font-size:13px; opacity:.85; margin-top:3px; }
+  .world-gate { font-size:15px; color:#ffd76e; margin-top:4px; }
+  .deco { position:absolute; font-size:24px; opacity:.35; z-index:0; pointer-events:none; }
+  .world-locked-body { text-align:center; padding:20px 12px 26px; position:relative; z-index:2; }
+  .world-locked-body .lock { font-size:52px; display:block; margin-bottom:6px; }
+
+  /* ---------- level path ---------- */
+  .map { position:relative; }
+  .map::before {   /* one continuous dashed line through the whole map */
+    content:''; position:absolute; top:70px; bottom:90px; left:50%;
+    border-left:4px dashed rgba(255,255,255,.3); transform:translateX(-2px); z-index:0;
+  }
+  .path { position:relative; padding:14px 0 26px; z-index:1; }
+  .node-row { position:relative; display:flex; justify-content:center; margin:26px 0; }
+  .node-row:nth-child(odd)  { transform:translateX(-70px); }
+  .node-row:nth-child(even) { transform:translateX(70px); }
+  .node {
+    width:92px; height:92px; border-radius:50%; cursor:pointer; border:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:inherit; font-size:32px; color:#fff; position:relative;
+    background:radial-gradient(circle at 30% 25%,#8f6bff,#5a34c9);
+    box-shadow:0 8px 0 #3c1f8f, 0 12px 24px rgba(0,0,0,.4);
+    transition:transform .15s;
+  }
+  .node:active { transform:translateY(4px); box-shadow:0 4px 0 #3c1f8f; }
+  .node.done { background:radial-gradient(circle at 30% 25%,#5fe19a,#1faf62); box-shadow:0 8px 0 #12824a, 0 12px 24px rgba(0,0,0,.4); }
+  .node.locked { background:radial-gradient(circle at 30% 25%,#9a9ab0,#5c5c74); box-shadow:0 8px 0 #44445a; cursor:not-allowed; filter:saturate(.4); }
+  .node .stars { font-size:12px; letter-spacing:1px; margin-top:-2px; }
+  .node-label {
+    position:absolute; top:100px; left:50%; transform:translateX(-50%);
+    width:150px; text-align:center; font-size:13px; line-height:1.25; color:#fff;
+    text-shadow:0 2px 4px rgba(0,0,0,.7);
+  }
+  .rocket-marker { position:absolute; top:-34px; left:50%; transform:translateX(-50%); font-size:26px;
+    animation:bob 1.6s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,-7px);} }
+
+  .reset { display:block; margin:24px auto 0; background:none; border:none; color:rgba(255,255,255,.45);
+    font-family:inherit; font-size:12px; cursor:pointer; text-decoration:underline; }
+
+  /* ---------- character screen ---------- */
+  .char-title { text-align:center; font-size:24px; margin:14px 0 4px; color:#ffd76e; }
+  .char-sub { text-align:center; font-size:15px; opacity:.85; margin:16px 0 10px; }
+  .char-cards { display:flex; gap:14px; justify-content:center; margin:18px 0; }
+  .char-card {
+    flex:1; max-width:180px; background:rgba(255,255,255,.1);
+    border:3px solid rgba(255,255,255,.25); border-radius:20px; padding:20px 10px;
+    text-align:center; cursor:pointer; color:#fff; font-family:inherit; font-size:16px;
+  }
+  .char-card .big { font-size:56px; display:block; margin-bottom:8px; }
+  .char-card.sel { border-color:#ffd76e; background:rgba(255,215,110,.18);
+    box-shadow:0 0 16px rgba(255,215,110,.4); }
+  .name-input {
+    width:100%; max-width:280px; display:block; margin:0 auto; padding:12px 16px;
+    font-family:inherit; font-size:22px; font-weight:bold; text-align:center;
+    border:3px solid #d6c9ff; border-radius:16px; color:#5a34c9; outline:none; background:#fff;
+  }
+  .name-input:focus { border-color:#8f6bff; }
+
+  /* ---------- world intro dialog ---------- */
+  .intro-scene { text-align:center; padding:10px 0 0; }
+  .intro-world { font-size:22px; color:#ffd76e; margin-bottom:10px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
+  .speaker { font-size:68px; display:block; margin:10px auto 4px; animation:pop .4s; }
+  .bubble {
+    position:relative; background:#fff; color:#333; border-radius:20px;
+    padding:16px 18px; margin:16px auto 20px; max-width:420px; font-size:17px; line-height:1.45;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .bubble::before { content:''; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    border:10px solid transparent; border-bottom-color:#fff; border-top:none; }
+  .bubble .who { font-weight:bold; color:#7a4fd4; display:block; margin-bottom:4px; }
+  .bubble.villain .who { color:#c0392b; }
+  .intro-dots { margin-top:14px; font-size:13px; letter-spacing:4px; opacity:.7; }
+
+  /* ---------- task screen ---------- */
+  .topbar { display:flex; align-items:center; gap:12px; margin-bottom:18px; padding-right:52px; }
+  .btn-close { background:rgba(255,255,255,.15); border:none; color:#fff; width:42px; height:42px;
+    border-radius:50%; font-size:20px; cursor:pointer; flex-shrink:0; }
+  .progress { flex:1; height:16px; background:rgba(0,0,0,.35); border-radius:10px; overflow:hidden; }
+  .progress > div { height:100%; background:linear-gradient(90deg,#ffd76e,#ffb340); transition:width .4s; border-radius:10px; }
+
+  .card {
+    background:#fff; color:#333; border-radius:24px; padding:22px 20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .card.shake { animation:shake .4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-10px);} 40%,80%{transform:translateX(10px);} }
+
+  .prompt { font-size:18px; line-height:1.45; margin-bottom:16px; text-align:center; }
+  .prompt .villain { color:#c0392b; }
+  .visual { text-align:center; font-size:32px; line-height:1.5; margin-bottom:18px; word-spacing:6px; }
+  .visual .grp { display:inline-block; background:#f2edff; border-radius:16px; padding:10px 14px; margin:4px; max-width:240px; }
+  .visual .op { font-size:36px; font-weight:bold; color:#7a4fd4; margin:0 6px; vertical-align:middle; }
+  .visual .gone { filter:grayscale(1); opacity:.35; }
+  .bignum { font-size:40px; font-weight:bold; color:#5a34c9; }
+  .gap { display:inline-block; min-width:52px; border-bottom:4px solid #ffb340; color:#ff9040; font-size:40px; font-weight:bold; text-align:center; }
+  .coin { display:inline-block; width:56px; height:56px; border-radius:50%; margin:4px;
+    background:radial-gradient(circle at 32% 28%,#ffe9a8,#f0b429); border:3px solid #d99a1b;
+    color:#7a5200; font-weight:bold; line-height:50px; font-size:24px; text-align:center; }
+
+  .options { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+  .opt {
+    min-width:72px; padding:14px 18px; font-size:26px; font-family:inherit; font-weight:bold;
+    border:none; border-radius:18px; cursor:pointer; color:#fff;
+    background:linear-gradient(180deg,#8f6bff,#6a3fe0); box-shadow:0 5px 0 #4a26a8;
+    transition:transform .1s;
+  }
+  .opt.txt { font-size:17px; }
+  .opt:active { transform:translateY(3px); box-shadow:0 2px 0 #4a26a8; }
+  .opt.wrong { background:linear-gradient(180deg,#c9c9d6,#a6a6ba); box-shadow:0 5px 0 #8b8ba0; pointer-events:none; }
+  .opt.right { background:linear-gradient(180deg,#5fe19a,#1faf62); box-shadow:0 5px 0 #12824a; }
+
+  .answer-display {
+    text-align:center; font-size:42px; font-weight:bold; color:#5a34c9;
+    min-height:58px; border-bottom:4px dashed #d6c9ff; margin:0 60px 16px; letter-spacing:4px;
+  }
+  .keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:280px; margin:0 auto; }
+  .key {
+    padding:14px 0; font-size:26px; font-family:inherit; font-weight:bold; border:none;
+    border-radius:16px; cursor:pointer; background:#f2edff; color:#5a34c9;
+    box-shadow:0 4px 0 #d6c9ff; transition:transform .1s;
+  }
+  .key:active { transform:translateY(3px); box-shadow:0 1px 0 #d6c9ff; }
+  .key.act { background:linear-gradient(180deg,#5fe19a,#1faf62); color:#fff; box-shadow:0 4px 0 #12824a; }
+  .key.del { background:#ffe3e3; color:#e05555; box-shadow:0 4px 0 #f5b8b8; }
+
+  .feedback { text-align:center; font-size:20px; font-weight:bold; min-height:30px; margin-top:16px; }
+  .feedback.good { color:#1faf62; }
+  .feedback.bad  { color:#e05555; }
+
+  .btn-next {
+    display:block; margin:14px auto 0; padding:14px 44px; font-size:22px; font-family:inherit; font-weight:bold;
+    border:none; border-radius:20px; cursor:pointer; color:#fff;
+    background:linear-gradient(180deg,#ffd76e,#ff9f40); box-shadow:0 6px 0 #d97b1e;
+  }
+  .btn-next:active { transform:translateY(4px); box-shadow:0 2px 0 #d97b1e; }
+
+  /* ---------- level complete ---------- */
+  .complete { text-align:center; padding:40px 20px; }
+  .complete .big { font-size:78px; animation:pop .5s; }
+  @keyframes pop { 0%{transform:scale(0);} 70%{transform:scale(1.25);} 100%{transform:scale(1);} }
+  .complete h2 { font-size:28px; margin:10px 0; }
+  .complete .gotstars { font-size:46px; letter-spacing:6px; margin:8px 0; }
+  .complete p { font-size:18px; margin:6px 0 20px; }
+  .unlock-banner { background:#fff7dd; border:2px dashed #ffb340; color:#b06c00;
+    border-radius:14px; padding:10px 14px; margin:10px auto; font-size:16px; max-width:320px; }
+
+  .conf { position:fixed; top:-20px; width:10px; height:14px; z-index:50; pointer-events:none;
+    animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(110vh) rotate(720deg); } }
+
+  @media (max-width:480px){
+    .node-row:nth-child(odd){ transform:translateX(-58px); }
+    .node-row:nth-child(even){ transform:translateX(58px); }
+    .visual{ font-size:28px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+/* ================= state ================= */
+const SAVE_KEY = 'kosmomath_v2';
+const DEFAULT_NAMES = { f:'Ника', m:'Коготь' };
+let state = { xp:0, levelStars:{}, char:{ g:'f', name:'Ника' }, sound:true, intros:{} };
+try {
+  const s = localStorage.getItem(SAVE_KEY);
+  if (s) state = JSON.parse(s);
+  else {
+    const old = localStorage.getItem('kosmomath_v1');   // migrate char/sound/xp from v1
+    if (old){ const o = JSON.parse(old);
+      if (o.char) state.char = o.char;
+      if (o.sound !== undefined) state.sound = o.sound;
+      if (o.xp) state.xp = o.xp; }
+  }
+} catch(e){}
+if (!state.char) state.char = { g:'f', name:'Ника' };
+if (state.sound === undefined) state.sound = true;
+if (!state.intros) state.intros = {};
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
+
+/* character helpers */
+const N  = ()=> state.char.name;
+const T  = ()=> state.char.g==='f' ? 'Астрокошка' : 'Космокот';
+const AV = ()=> state.char.g==='f' ? '😺' : '🐱';
+const vb = (m,f)=> state.char.g==='f' ? f : m;          // player verb
+const nvb = (npc,m,f)=> npc.g==='f' ? f : m;            // NPC verb
+
+const RANKS = [
+  [0,'Юнга'],[100,'Пилот-стажёр'],[250,'Пилот'],[450,'Штурман'],[700,'Капитан'],[1000,'Адмирал Галактики']
+];
+function rankInfo(){
+  let i = 0;
+  while (i+1 < RANKS.length && state.xp >= RANKS[i+1][0]) i++;
+  const cur = RANKS[i], next = RANKS[i+1];
+  return { idx:i, name:cur[1], pct: next ? Math.round(100*(state.xp-cur[0])/(next[0]-cur[0])) : 100, next };
+}
+
+/* character art: characters/web/{Nika|Kogot}_{rank}.png */
+const RANK_FILES = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
+function charImg(g, ri){
+  return 'characters/web/'+(g==='f'?'Nika':'Kogot')+'_'+RANK_FILES[ri]+'_transparent.png';
+}
+function totalStars(){ return Object.values(state.levelStars).reduce((a,b)=>a+b,0); }
+
+/* ================= sounds (WebAudio) ================= */
+let actx = null;
+function beep(freq, dur, delay, type, vol){
+  if (!state.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const t = actx.currentTime + (delay||0);
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  } catch(e){}
+}
+const sndClick   = ()=> beep(700, .06, 0, 'square', .04);
+const sndCorrect = ()=> [523,659,784].forEach((f,i)=> beep(f, .15, i*0.09, 'triangle', .12));
+const sndWrong   = ()=> beep(150, .3, 0, 'sawtooth', .06);
+const sndWin     = ()=> [523,659,784,1047,1319].forEach((f,i)=> beep(f, .2, i*0.11, 'triangle', .12));
+function toggleSound(){
+  state.sound = !state.sound; save();
+  if (state.sound) sndClick();
+  const f = document.getElementById('soundFab');
+  if (f) f.textContent = state.sound ? '🔊' : '🔇';
+}
+
+/* ================= helpers ================= */
+const rnd = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+const pick = arr => arr[rnd(0,arr.length-1)];
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
+function plural(n, f){ n=Math.abs(n)%100; const d=n%10;
+  if(n>10&&n<20) return f[2]; if(d>1&&d<5) return f[1]; if(d===1) return f[0]; return f[2]; }
+function em(e,n,cls){ let s=''; for(let i=0;i<n;i++) s+='<span class="'+(cls||'')+'">'+e+'</span> '; return s; }
+function emRows(e,n){ // rows of 5 so counting big numbers is easier
+  let s=''; for(let i=0;i<n;i++){ s+=e+' '; if((i+1)%5===0 && i+1<n) s+='<br>'; } return s;
+}
+
+const ITEMS = [
+  {e:'🚀', f:['ракета','ракеты','ракет']},
+  {e:'⭐', f:['звезда','звезды','звёзд']},
+  {e:'🪐', f:['планета','планеты','планет']},
+  {e:'☄️', f:['комета','кометы','комет']},
+  {e:'👽', f:['инопланетянин','инопланетянина','инопланетян']},
+  {e:'🛸', f:['тарелка','тарелки','тарелок']},
+  {e:'🍩', f:['космопончик','космопончика','космопончиков']},
+  {e:'🤖', f:['робот','робота','роботов']},
+];
+const PRAISE = ['Отлично! 🎉','Космически! 🚀','Супер! ⭐','Молодец! 💫','Верно! 🛸','Ты звезда! 🌟'];
+const RETRY  = ['Попробуй ещё раз! 💪','Почти! Подумай ещё 🤔','Не сдавайся! 🚀'];
+const QUOTES = [
+  'Каждая решённая задача — новая звезда на твоём небе!',
+  'Настоящие капитаны не боятся трудных примеров!',
+  'Умение считать — это суперсила!',
+  'Ошибки — это ступеньки к победе!',
+  'Кто тренируется — тот побеждает!',
+  'Смелость и математика откроют любую дверь!'
+];
+
+/* ================= task generators =================
+   task = { prompt, visual, kind:'choice'|'input', options?, answer }
+   c = world cast: { h:{n,e,g}, v:{n,e,g} } */
+
+function genCount(max, kind){
+  const it = pick(ITEMS);
+  const n = rnd(2, max);
+  const t = {
+    prompt:'Сосчитай! Сколько здесь '+it.f[2]+'?',
+    visual:'<div class="grp">'+em(it.e,n)+'</div>',
+    kind, answer:String(n)
+  };
+  if (kind==='choice'){
+    const opts = new Set([n]);
+    while (opts.size<4) opts.add(Math.max(1, n+rnd(-3,3)));
+    t.options = shuffle([...opts]).map(String);
+  }
+  return t;
+}
+
+function genCompare(){
+  let a = rnd(1,9), b = rnd(1,9);
+  if (Math.random()<0.2) b = a;
+  const i1 = pick(ITEMS); let i2 = pick(ITEMS);
+  while (i2===i1) i2 = pick(ITEMS);
+  return {
+    prompt:'Сравни количество! Выбери правильный знак.',
+    visual:'<div class="grp">'+em(i1.e,a)+'</div><span class="op">?</span><div class="grp">'+em(i2.e,b)+'</div>',
+    kind:'choice', options:['>','<','='],
+    answer: a>b ? '>' : (a<b ? '<' : '=')
+  };
+}
+
+function genBonds(c){
+  const total = rnd(4,10), p = rnd(1,total-1);
+  return {
+    prompt:c.h.e+' '+c.h.n+' просит помощи: какое число спряталось?',
+    visual:'<span class="bignum">'+total+' = '+p+' + </span><span class="gap">?</span>',
+    kind:'input', answer:String(total-p)
+  };
+}
+
+function genAdd(max, c){
+  const a = rnd(1,6), b = rnd(1, Math.max(1, max-a));
+  const it = pick(ITEMS);
+  const tpl = pick([
+    N()+' и '+c.h.n+' нашли '+a+' '+plural(a,it.f)+', а потом ещё '+b+'. Сколько всего?',
+    N()+' '+vb('собрал','собрала')+' '+a+' '+plural(a,it.f)+'. '+c.h.e+' '+c.h.n+' '+nvb(c.h,'принёс','принесла')+' ещё '+b+'. Сколько стало?',
+    'Утром '+N()+' '+vb('нашёл','нашла')+' '+a+' '+plural(a,it.f)+', а вечером — ещё '+b+'. Сколько всего?'
+  ]);
+  return {
+    prompt:tpl,
+    visual:'<div class="grp">'+em(it.e,a)+'</div><span class="op">+</span><div class="grp">'+em(it.e,b)+'</div>',
+    kind:'input', answer:String(a+b)
+  };
+}
+
+function genSub(c){
+  const a = rnd(3,10), b = rnd(1,a-1);
+  const it = pick(ITEMS);
+  const tpl = pick([
+    N()+' '+vb('взял','взяла')+' в полёт '+a+' '+plural(a,it.f)+'. '+b+' '+vb('он отдал','она отдала')+' друзьям. Сколько осталось?',
+    'На орбите летало '+a+' '+plural(a,it.f)+'. '+b+' улетели домой. Сколько осталось?',
+    'Было '+a+' '+plural(a,it.f)+'. '+c.h.e+' '+c.h.n+' '+nvb(c.h,'забрал','забрала')+' '+b+' себе. Сколько осталось?'
+  ]);
+  return {
+    prompt:tpl,
+    visual:'<div class="grp">'+em(it.e,a-b)+em(it.e,b,'gone')+'</div>',
+    kind:'input', answer:String(a-b)
+  };
+}
+
+function genStory(c){
+  const kind = rnd(1,3);
+  if (kind===1){
+    const need = rnd(8,12), a = rnd(1,5), b = rnd(1,5), d = rnd(1,5);
+    return {
+      prompt:T()+' '+N()+' готовится к прыжку в гиперпространство! Для прыжка нужно '+need+
+        ' энерго-ячеек. В двигателе уже '+a+', в хранилище '+b+' и ещё '+d+' на складе. Хватит ли энергии для прыжка?',
+      visual:'<div class="grp">'+em('🔋',a)+'</div><span class="op">+</span><div class="grp">'+em('🔋',b)+
+        '</div><span class="op">+</span><div class="grp">'+em('🔋',d)+'</div>',
+      kind:'choice', options:['Да','Нет'], answer: (a+b+d>=need)?'Да':'Нет'
+    };
+  }
+  if (kind===2){
+    const a = rnd(1,4), b = rnd(1,3), d = rnd(1,3);
+    const it = pick([ITEMS[1],ITEMS[3],ITEMS[6]]);
+    return {
+      prompt:N()+' собирает звёздное топливо! Утром '+vb('он нашёл','она нашла')+' '+a+' '+plural(a,it.f)+
+        ', днём — '+b+', а вечером — ещё '+d+'. Сколько всего получилось?',
+      visual:'<div class="grp">'+em(it.e,a)+'</div><span class="op">+</span><div class="grp">'+em(it.e,b)+
+        '</div><span class="op">+</span><div class="grp">'+em(it.e,d)+'</div>',
+      kind:'input', answer:String(a+b+d)
+    };
+  }
+  const a = rnd(5,10), b = rnd(1,4);
+  return {
+    prompt:'На космической станции пришвартовалось '+a+' '+plural(a,['корабль','корабля','кораблей'])+
+      '. Потом '+b+' '+(b===1?'улетел':'улетели')+' в туманность. Сколько кораблей осталось?',
+    visual:'<div class="grp">'+em('🚀',a-b)+em('🚀',b,'gone')+'</div>',
+    kind:'input', answer:String(a-b)
+  };
+}
+
+/* --- Пояс астероидов --- */
+function genCount20(){
+  const n = rnd(11,20);
+  const it = pick([{e:'💎',f:['кристалл','кристалла','кристаллов']},{e:'🪨',f:['камень','камня','камней']}]);
+  return {
+    prompt:'Ого, целая россыпь! Сосчитай, сколько здесь '+it.f[2]+'. Подсказка: в каждом ряду по 5!',
+    visual:'<div class="grp">'+emRows(it.e,n)+'</div>',
+    kind:'input', answer:String(n)
+  };
+}
+function genAddCross(c){
+  const a = rnd(5,9), b = rnd(Math.max(2,11-a), 9);
+  return {
+    prompt:c.h.e+' '+c.h.n+' и '+N()+' добывают кристаллы: сначала нашли '+a+', потом ещё '+b+'. Сколько всего кристаллов?',
+    visual:'<div class="grp">'+emRows('💎',a)+'</div><span class="op">+</span><div class="grp">'+emRows('💎',b)+'</div>',
+    kind:'input', answer:String(a+b)
+  };
+}
+function genTwoStep(c){
+  const a = rnd(3,6), b = rnd(1,4), d = rnd(1, Math.min(a+b-1, 5));
+  return {
+    prompt:N()+' и '+c.h.n+' собрали сначала '+a+' '+plural(a,['звезду','звезды','звёзд'])+', потом ещё '+b+
+      '. Но '+c.v.e+' '+c.v.n+' '+nvb(c.v,'утащил','утащила')+' '+d+'! Сколько звёзд осталось?',
+    visual:'<div class="grp">'+em('⭐',a)+'</div><span class="op">+</span><div class="grp">'+em('⭐',b)+
+      '</div><span class="op">−</span><div class="grp">'+em('⭐',d,'gone')+'</div>',
+    kind:'input', answer:String(a+b-d)
+  };
+}
+
+/* --- Планета роботов --- */
+function genSeq(){
+  const d = pick([1,2]), asc = Math.random()<0.7;
+  let start = asc ? rnd(0,8) : rnd(8,16);
+  const seq = [];
+  for (let i=0;i<4;i++) seq.push(asc ? start+d*i : start-d*i);
+  const ans = asc ? start+d*4 : start-d*4;
+  const opts = new Set([ans]);
+  while (opts.size<4) opts.add(Math.max(0, ans+rnd(-3,3)));
+  return {
+    prompt:'Роботы печатают числа по порядку. Какое число будет следующим?',
+    visual:'<span class="bignum">'+seq.join(', ')+', </span><span class="gap">?</span>',
+    kind:'choice', options:shuffle([...opts]).map(String), answer:String(ans)
+  };
+}
+function genShapePattern(){
+  const shapes = shuffle(['🔴','🔵','🟡','🟢','🔺','🟣','⬛','⭐']);
+  const p = shapes.slice(0, pick([2,3]));
+  const len = p.length===2 ? 6 : 6;
+  let seq = '';
+  for (let i=0;i<len;i++) seq += p[i%p.length]+' ';
+  const ans = p[len%p.length];
+  const opts = shuffle(p.concat(shapes[p.length]).slice(0,4));
+  return {
+    prompt:'Робот-художник рисует узор. Какая фигура будет следующей?',
+    visual:'<div class="grp" style="font-size:36px">'+seq+'<span class="gap">?</span></div>',
+    kind:'choice', options:opts, answer:ans
+  };
+}
+function genOddOne(){
+  const cats = [
+    ['🍎','🍐','🍌','🍇','🍓'],
+    ['🐱','🐶','🐰','🦊','🐻'],
+    ['🚗','🚀','🚂','✈️','🚁'],
+    ['⚽','🏀','🎾','🏐','⚾'],
+  ];
+  const ci = rnd(0,cats.length-1);
+  let oi = rnd(0,cats.length-1); while (oi===ci) oi = rnd(0,cats.length-1);
+  const three = shuffle(cats[ci]).slice(0,3);
+  const odd = pick(cats[oi]);
+  const opts = shuffle(three.concat(odd));
+  return {
+    prompt:'Робот-сортировщик запутался! Что здесь лишнее?',
+    visual:'<div class="grp" style="font-size:40px">'+opts.join(' ')+'</div>',
+    kind:'choice', options:opts, answer:odd
+  };
+}
+
+/* --- Туманность времени --- */
+function genClock(){
+  const h = rnd(1,9), d = rnd(1,3);
+  return {
+    prompt:'Часы показывают '+h+' '+plural(h,['час','часа','часов'])+'. Сколько будет через '+d+' '+plural(d,['час','часа','часов'])+'?',
+    visual:'<span style="font-size:56px">🕐</span><br><span class="bignum">'+h+' + '+d+' = </span><span class="gap">?</span>',
+    kind:'input', answer:String(h+d)
+  };
+}
+function genDays(){
+  const DAYS = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
+  const i = rnd(0,6);
+  const tomorrow = Math.random()<0.6;
+  const ans = tomorrow ? DAYS[(i+1)%7] : DAYS[(i+6)%7];
+  const opts = new Set([ans]);
+  while (opts.size<3) opts.add(DAYS[rnd(0,6)]);
+  return {
+    prompt:'Сегодня '+DAYS[i]+'. Какой день '+(tomorrow?'будет завтра':'был вчера')+'?',
+    visual:'<span style="font-size:56px">📅</span>',
+    kind:'choice', options:shuffle([...opts]), answer:ans
+  };
+}
+function genMoney(c){
+  const denoms = [1,2,5,10];
+  const cnt = pick([2,2,3]);
+  const coins = []; let sum = 0;
+  for (let i=0;i<cnt;i++){ const d = pick(denoms); coins.push(d); sum += d; }
+  return {
+    prompt:c.h.e+' '+c.h.n+' даёт монетки на космо-мороженое. Сколько всего рублей?',
+    visual:coins.map(d=>'<span class="coin">'+d+'</span>').join(''),
+    kind:'input', answer:String(sum)
+  };
+}
+
+/* ================= worlds ================= */
+const WORLDS = [
+  {
+    name:'Родная планета', icon:'🏡', gate:0,
+    tint:'linear-gradient(180deg, rgba(90,200,120,.22), rgba(40,120,70,.12))',
+    deco:['🌳','🌸','🍄','🦋'],
+    cast:{ h:{n:'котёнок Пуша', e:'🐾', g:'m'}, v:{n:'ворона Карка', e:'🐦‍⬛', g:'f'} },
+    intro:[
+      ['h','Мяу! Привет, {N}! Я котёнок Пуша. На нашей планете столько всего интересного — помоги мне всё сосчитать!'],
+      ['v','Кар-р-р! А я ворона Карка! Я всё перепутаю, и вы собьётесь со счёта!'],
+      ['p','Не выйдет, Карка! Мы с Пушей умеем считать. Вперёд!'],
+    ],
+    levels:[
+      { title:'Учимся считать',    icon:'🐣', gen:c=>genCount(5,'choice') },
+      { title:'Считаем до 10',     icon:'🔟', gen:c=>genCount(10,'input') },
+      { title:'Больше или меньше', icon:'⚖️', gen:c=>genCompare() },
+      { title:'Состав числа',      icon:'🧩', gen:c=>genBonds(c) },
+    ]
+  },
+  {
+    name:'Луна', icon:'🌙', gate:8,
+    tint:'linear-gradient(180deg, rgba(190,190,215,.20), rgba(90,90,120,.12))',
+    deco:['🌑','🪨','⭐','🕳️'],
+    cast:{ h:{n:'лунный заяц Луня', e:'🐰', g:'m'}, v:{n:'метеорит Бум', e:'☄️', g:'m'} },
+    intro:[
+      ['h','Привет, {N}! Я лунный заяц Луня. Мои лунные камушки рассыпались по всем кратерам — поможешь их складывать и вычитать?'],
+      ['v','БУМ-М-М! Я метеорит Бум! Сейчас разобью все ваши примеры на кусочки!'],
+      ['p','Плюс и минус нас не подведут. Летим, Луня!'],
+    ],
+    levels:[
+      { title:'Сложение',       icon:'➕', gen:c=>genAdd(10,c) },
+      { title:'Вычитание',      icon:'➖', gen:c=>genSub(c) },
+      { title:'Задачи-истории', icon:'📖', gen:c=>genStory(c) },
+      { title:'Испытание Бума', icon:'💥', boss:true, gen:c=>pick([()=>genAdd(10,c),()=>genSub(c),()=>genStory(c)])() },
+    ]
+  },
+  {
+    name:'Пояс астероидов', icon:'☄️', gate:18,
+    tint:'linear-gradient(180deg, rgba(220,150,80,.20), rgba(140,80,40,.12))',
+    deco:['🪨','💎','✨','🛰️'],
+    cast:{ h:{n:'инопланетянин Зюм', e:'👽', g:'m'}, v:{n:'пират Крыс', e:'🏴‍☠️', g:'m'} },
+    intro:[
+      ['h','Зюм-зюм! Я Зюм, собиратель кристаллов. Здесь их видимо-невидимо — целых двадцать в одной куче! Поможешь сосчитать?'],
+      ['v','Йо-хо-хо! Космический пират Крыс! Все кристаллы будут мои!'],
+      ['p','Сокровища достаются тем, кто умеет считать до 20. За дело!'],
+    ],
+    levels:[
+      { title:'Считаем до 20',  icon:'💎', gen:c=>genCount20() },
+      { title:'Через десяток',  icon:'🚀', gen:c=>genAddCross(c) },
+      { title:'Два действия',   icon:'🎯', gen:c=>genTwoStep(c) },
+      { title:'Проверка Крыса', icon:'🏴‍☠️', boss:true, gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c),()=>genCount20()])() },
+    ]
+  },
+  {
+    name:'Планета роботов', icon:'🤖', gate:28,
+    tint:'linear-gradient(180deg, rgba(80,170,230,.20), rgba(40,90,140,.12))',
+    deco:['⚙️','🔩','💡','🔌'],
+    cast:{ h:{n:'роботёнок Винтик', e:'🤖', g:'m'}, v:{n:'Механикус', e:'🦾', g:'m'} },
+    intro:[
+      ['h','Бип-бип! Я роботёнок Винтик! У нас на планете всё было по порядку... а теперь узоры и ряды перепутались. Почини их, {N}!'],
+      ['v','Я — Механикус. Без моего экзамена дальше не пройдёт никто. Логика или ничего!'],
+      ['p','Мы обожаем загадки! Начинаем, Винтик!'],
+    ],
+    levels:[
+      { title:'Продолжи ряд',        icon:'🔢', gen:c=>genSeq() },
+      { title:'Узоры из фигур',      icon:'🔷', gen:c=>genShapePattern() },
+      { title:'Найди лишнее',        icon:'🔍', gen:c=>genOddOne() },
+      { title:'Экзамен Механикуса',  icon:'🦾', boss:true, gen:c=>pick([genSeq,genShapePattern,genOddOne])() },
+    ]
+  },
+  {
+    name:'Туманность времени', icon:'⏰', gate:38,
+    tint:'linear-gradient(180deg, rgba(190,120,230,.20), rgba(100,60,140,.12))',
+    deco:['🕐','📅','⏳','🌌'],
+    cast:{ h:{n:'сова Умница', e:'🦉', g:'f'}, v:{n:'хранитель Тик-Так', e:'⏱️', g:'m'} },
+    intro:[
+      ['h','Уху! Я сова Умница. В нашей туманности перепутались часы, дни недели и даже монетки. Наведём порядок вместе?'],
+      ['v','Тик-так, тик-так... Я хранитель времени. Отгадаешь мои загадки — пропущу. Нет — останешься здесь навсегда... тик-так!'],
+      ['p','Времени зря не теряем — за дело!'],
+    ],
+    levels:[
+      { title:'Который час?',      icon:'🕒', gen:c=>genClock() },
+      { title:'Дни недели',        icon:'📅', gen:c=>genDays() },
+      { title:'Монетки',           icon:'🪙', gen:c=>genMoney(c) },
+      { title:'Загадки Тик-Така',  icon:'⏱️', boss:true, gen:c=>pick([()=>genClock(),()=>genDays(),()=>genMoney(c)])() },
+    ]
+  },
+  {
+    name:'Дальний космос', icon:'🔭', gate:48,
+    tint:'linear-gradient(180deg, rgba(60,60,140,.30), rgba(20,20,60,.20))',
+    deco:['🌠','🌀','🛸','🌟'],
+    cast:{ h:{n:'капитан Галактион', e:'👨‍🚀', g:'m'}, v:{n:'чёрная дыра Мгла', e:'🕳️', g:'f'} },
+    intro:[
+      ['h','Приветствую, {N}! Капитан Галактион на связи. Ты у самого края карты — впереди самые сложные задания галактики!'],
+      ['v','Я — Мгла. Всё, что подлетает близко, исчезает во мне... даже правильные ответы!'],
+      ['p','Мы не боимся темноты. Полный вперёд!'],
+    ],
+    levels:[
+      { title:'Смешанные задачи', icon:'🌟', gen:c=>pick([()=>genAdd(10,c),()=>genSub(c),()=>genCompare()])() },
+      { title:'Гипер-задачи',     icon:'🚀', gen:c=>pick([()=>genAddCross(c),()=>genTwoStep(c)])() },
+      { title:'Задачи-истории',   icon:'📖', gen:c=>genStory(c) },
+      { title:'Испытание Мглы',   icon:'🕳️', boss:true, gen:c=>pick([()=>genTwoStep(c),()=>genStory(c),()=>genAddCross(c)])() },
+    ]
+  },
+];
+const TASKS_PER_LEVEL = 5;
+const MAX_STARS = WORLDS.reduce((s,w)=> s + w.levels.length*3, 0);
+
+const sKey = (wi,li)=> wi+'-'+li;
+const lvlStars = (wi,li)=> state.levelStars[sKey(wi,li)]||0;
+const worldOpen = wi => totalStars() >= WORLDS[wi].gate;
+function levelOpen(wi,li){ return worldOpen(wi) && (li===0 || lvlStars(wi,li-1)>0); }
+function openWorldsCount(){ return WORLDS.filter((w,i)=>worldOpen(i)).length; }
+
+/* ================= parallax background stars ================= */
+const starLayers = [];
+(function(){
+  // [parallax factor, star count, min size, drift duration s]
+  const cfg = [
+    [0.14, 14, 1.8, 70],   // near: bigger, moves most
+    [0.07, 15, 1.2, 100],  // mid
+    [0.03, 14, 0.8, 140],  // far: tiny, almost still
+  ];
+  cfg.forEach(([k, count, minSz, dur])=>{
+    const layer = document.createElement('div');
+    layer.className = 'star-layer';
+    const drift = document.createElement('div');
+    drift.className = 'star-drift';
+    drift.style.animationDuration = dur+'s';
+    for (let i=0;i<count;i++){
+      const s = document.createElement('div');
+      s.className = 'bg-star';
+      const sz = minSz + Math.random()*1.6;
+      s.style.cssText = 'width:'+sz+'px;height:'+sz+'px;left:'+Math.random()*100+'%;top:'+
+        Math.random()*100+'%;animation-delay:'+(Math.random()*3)+'s;animation-duration:'+
+        (2.5+Math.random()*2)+'s;';
+      drift.appendChild(s);
+    }
+    layer.appendChild(drift);
+    document.body.appendChild(layer);
+    starLayers.push({ el:layer, k });
+  });
+  let ticking = false;
+  window.addEventListener('scroll', ()=>{
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{
+      const y = window.scrollY || 0;
+      starLayers.forEach(l=> l.el.style.transform = 'translateY('+(-y*l.k)+'px)');
+      ticking = false;
+    });
+  }, { passive:true });
+})();
+
+/* ================= confetti ================= */
+function confetti(){
+  const colors = ['#ffd76e','#ff6b9d','#5fe19a','#6bb5ff','#c88bff'];
+  for (let i=0;i<40;i++){
+    const c = document.createElement('div');
+    c.className = 'conf';
+    c.style.cssText = 'left:'+Math.random()*100+'vw;background:'+pick(colors)+
+      ';animation-duration:'+(1.4+Math.random()*1.4)+'s;animation-delay:'+(Math.random()*0.3)+'s;';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 3200);
+  }
+}
+
+/* ================= screens ================= */
+const app = document.getElementById('app');
+
+/* fixed chrome: sound button (top right) + bottom nav */
+document.body.insertAdjacentHTML('beforeend',
+  '<button class="sound-fab" id="soundFab" onclick="toggleSound()">🔊</button>'+
+  '<nav class="bottomnav" id="bottomNav">'+
+  '<button class="nav-btn" data-s="map" onclick="renderHome()"><span class="ic">🗺️</span>Карта</button>'+
+  '<button class="nav-btn" data-s="practice" onclick="renderPractice()"><span class="ic">🔁</span>Повторение</button>'+
+  '<button class="nav-btn" data-s="achieve" onclick="renderAchievements()"><span class="ic">🏆</span>Награды</button>'+
+  '<button class="nav-btn" data-s="profile" onclick="renderCharScreen()"><span class="ic"><span class="nav-avatar" id="navAv">😺</span></span>Профиль</button>'+
+  '</nav>');
+
+function setChrome(screen){
+  const f = document.getElementById('soundFab');
+  if (f) f.textContent = state.sound ? '🔊' : '🔇';
+  const nav = document.getElementById('bottomNav');
+  const show = ['map','practice','achieve','profile'].includes(screen);
+  nav.style.display = show ? 'flex' : 'none';
+  nav.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.s===screen));
+  const av = document.getElementById('navAv');
+  if (av){
+    av.textContent = '';
+    av.className = 'nav-avatar img'+(state.char.g==='f'?' girl':'');
+    av.style.backgroundImage = 'url("'+charImg(state.char.g, rankInfo().idx)+'")';
+  }
+  window.scrollTo(0,0);
+}
+const DECO_POS = [
+  'top:14%;left:3%;','top:32%;right:4%;','top:58%;left:4%;','top:80%;right:5%;'
+];
+
+function renderHome(){
+  setChrome('map');
+  const r = rankInfo();
+  let html =
+    '<div class="hero">'+
+    '<div class="avatar face'+(state.char.g==='f'?' girl':'')+'" style="background-image:url(\''+
+      charImg(state.char.g, r.idx)+'\')"></div><div style="flex:1">'+
+    '<h1>'+T()+' '+N()+'</h1><div class="rank">Ранг: '+r.name+'</div>'+
+    '<div class="xpbar"><div style="width:'+r.pct+'%"></div></div>'+
+    '<div class="xptext">'+state.xp+' XP'+(r.next?' · до ранга «'+r.next[1]+'»: '+(r.next[0]-state.xp)+' XP':'')+'</div>'+
+    '<div class="starcount">⭐ '+totalStars()+' из '+MAX_STARS+'</div>'+
+    '</div></div>';
+
+  html += '<div class="map">';
+  WORLDS.forEach((w, wi)=>{
+    const open = worldOpen(wi);
+    const deco = w.deco.map((d,i)=>'<span class="deco" style="'+DECO_POS[i%4]+'">'+d+'</span>').join('');
+    html += '<div class="world" style="background:'+w.tint+'">'+deco+
+      '<div class="world-head"><h2>'+w.icon+' '+w.name+'</h2>';
+    if (open){
+      html += '<div class="world-npc">'+w.cast.h.e+' '+w.cast.h.n+' ждёт помощи · берегись: '+w.cast.v.e+' '+w.cast.v.n+'!</div></div>';
+      html += '<div class="path">';
+      w.levels.forEach((L, li)=>{
+        const stars = lvlStars(wi,li);
+        const lOpen = levelOpen(wi,li);
+        const cls = !lOpen ? 'locked' : (stars>0 ? 'done' : '');
+        const isCurrent = lOpen && stars===0;
+        html += '<div class="node-row"><button class="node '+cls+'" '+
+          (lOpen?('onclick="startLevel('+wi+','+li+')"'):'')+'>'+
+          (isCurrent ? '<span class="rocket-marker">🚀</span>' : '')+
+          (!lOpen?'🔒':L.icon)+
+          (lOpen?'<span class="stars">'+'★'.repeat(stars)+'☆'.repeat(3-stars)+'</span>':'')+
+          '<span class="node-label">'+L.title+'</span></button></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '</div><div class="world-locked-body"><span class="lock">🔒</span>'+
+        'Собери <b style="color:#ffd76e">⭐ '+w.gate+'</b>, чтобы открыть этот мир!<br>'+
+        '<small>У тебя пока ⭐ '+totalStars()+'</small></div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+
+  html += '<button class="reset" onclick="resetProgress()">сбросить прогресс</button>';
+  app.innerHTML = html;
+}
+
+function resetProgress(){
+  if (confirm('Точно начать сначала?')){
+    state = { xp:0, levelStars:{}, char:state.char, sound:state.sound, intros:{} };
+    save(); renderHome();
+  }
+}
+
+/* ---------- practice (повторение) ---------- */
+let practicePool = null;
+
+function passedPool(){
+  const pool = [];
+  WORLDS.forEach((W,wi)=> W.levels.forEach((L,li)=>{ if (lvlStars(wi,li)>0) pool.push({wi,li}); }));
+  return pool;
+}
+
+function renderPractice(){
+  setChrome('practice');
+  const pool = passedPool();
+  let html = '<div class="char-title">🔁 Повторение</div>';
+  if (!pool.length){
+    html += '<div class="char-sub">Сначала пройди хотя бы один уровень на карте —<br>тогда его можно будет повторять здесь! 🚀</div>'+
+      '<button class="btn-next" onclick="renderHome()">На карту 🗺️</button>';
+  } else {
+    html += '<div class="char-sub">Повторение — путь к рангу Адмирала!<br>Выбери тему или перемешай всё.</div>'+
+      '<button class="practice-all" onclick="startPracticeAll()">Повторить всё 🎲</button>'+
+      '<div class="topic-grid">'+
+      pool.map(p=>{
+        const W = WORLDS[p.wi], L = W.levels[p.li];
+        return '<button class="topic" onclick="startPractice('+p.wi+','+p.li+')">'+
+          L.icon+' '+L.title+'<span class="w">'+W.icon+' '+W.name+'</span></button>';
+      }).join('')+
+      '</div>';
+  }
+  app.innerHTML = html;
+}
+
+function startPracticeAll(){ practicePool = passedPool(); startPracticeSession(); }
+function startPractice(wi, li){ practicePool = [{wi,li}]; startPracticeSession(); }
+function startPracticeSession(){
+  if (!practicePool || !practicePool.length) return;
+  sndClick();
+  const tasks = [];
+  for (let i=0;i<TASKS_PER_LEVEL;i++){
+    const p = pick(practicePool);
+    tasks.push(WORLDS[p.wi].levels[p.li].gen(WORLDS[p.wi].cast));
+  }
+  cur = { practice:true, tasks, idx:0, mistakes:0, firstTry:true, input:'', rankBefore:rankInfo().name };
+  renderTask();
+}
+
+function finishPractice(){
+  const bonus = 10;
+  state.xp += bonus; save();
+  const rankNow = rankInfo().name;
+  const rankUp = rankNow !== cur.rankBefore;
+  sndWin();
+  confetti();
+  setChrome('task');
+  app.innerHTML =
+    '<div class="card complete">'+
+    '<div class="big">💪</div>'+
+    '<h2 style="color:#5a34c9">Повторение — сила!</h2>'+
+    '<p>+'+bonus+' XP за тренировку!<br>'+
+    (cur.mistakes===0 ? 'Ни одной ошибки — блестяще! ✨' : 'Ошибок: '+cur.mistakes+'. В следующий раз получится ещё лучше!')+'</p>'+
+    (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
+      '🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!<br><small>'+pick(QUOTES)+'</small></div>' : '')+
+    '<button class="btn-next" onclick="startPracticeSession()">Ещё раз 🔁</button>'+
+    '<button class="btn-next" onclick="renderPractice()" style="background:linear-gradient(180deg,#8f6bff,#6a3fe0);box-shadow:0 6px 0 #4a26a8">К темам 📚</button>'+
+    '</div>';
+}
+
+/* ---------- achievements (future) ---------- */
+function renderAchievements(){
+  setChrome('achieve');
+  app.innerHTML =
+    '<div class="char-title">🏆 Достижения</div>'+
+    '<div class="char-sub">Скоро! Здесь появятся награды за твои подвиги.</div>'+
+    '<div class="ach">🔒 <b>Первый шаг</b><br><small>Реши свои первые 10 задач</small></div>'+
+    '<div class="ach">🔒 <b>Без промаха</b><br><small>Пройди уровень без единой ошибки</small></div>'+
+    '<div class="ach">🔒 <b>Покоритель Луны</b><br><small>Открой все уровни Луны</small></div>'+
+    '<div class="ach">🔒 <b>Гроза пиратов</b><br><small>Победи пирата Крыса на босс-уровне</small></div>'+
+    '<div class="ach">🔒 <b>Адмирал Галактики</b><br><small>Достигни высшего ранга</small></div>';
+}
+
+/* ---------- character screen ---------- */
+function renderCharScreen(){
+  setChrome('profile');
+  app.innerHTML =
+    '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
+    '<div class="char-title">Выбери героя ✨</div>'+
+    '<div class="char-cards">'+
+    '<button class="char-card'+(state.char.g==='f'?' sel':'')+'" onclick="setGender(\'f\')">'+
+      '<img class="char-full" src="'+charImg('f', rankInfo().idx)+'" alt="Астрокошка">Астрокошка</button>'+
+    '<button class="char-card'+(state.char.g==='m'?' sel':'')+'" onclick="setGender(\'m\')">'+
+      '<img class="char-full" src="'+charImg('m', rankInfo().idx)+'" alt="Космокот">Космокот</button>'+
+    '</div>'+
+    '<div class="char-sub">Как зовут твоего героя?</div>'+
+    '<input class="name-input" id="nameInp" maxlength="12" value="'+N()+'">'+
+    '<button class="btn-next" onclick="saveChar()">Сохранить ✓</button>'+
+    '<div class="char-sub" style="margin-top:34px">💾 Код спасения — чтобы перенести прогресс<br>на другое устройство (для взрослых)</div>'+
+    '<button class="topic" onclick="showSaveCode()">Показать мой код</button> '+
+    '<button class="topic" onclick="enterSaveCode()">Ввести код</button>'+
+    '<div id="codeOut" style="text-align:center;font-size:12px;word-break:break-all;'+
+      'margin:10px auto;max-width:320px;opacity:.85"></div>';
+}
+
+/* ---------- rescue code (export/import progress) ---------- */
+function exportCode(){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+}
+function showSaveCode(){
+  sndClick();
+  const code = exportCode();
+  const out = document.getElementById('codeOut');
+  out.textContent = code;
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code)
+      .then(()=>{ out.textContent = '✅ Код скопирован!\n'+code; })
+      .catch(()=>{});
+  }
+}
+function enterSaveCode(){
+  const code = prompt('Вставь код спасения:');
+  if (!code) return;
+  try {
+    const s = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (typeof s.xp !== 'number' || !s.levelStars || !s.char) throw new Error('bad');
+    state = s;
+    if (!state.intros) state.intros = {};
+    if (state.sound === undefined) state.sound = true;
+    save(); sndWin(); renderHome();
+  } catch(e){
+    alert('Хм, код не подошёл. Проверь, что он скопирован целиком!');
+  }
+}
+function grabName(){
+  const inp = document.getElementById('nameInp');
+  if (inp){
+    const v = inp.value.replace(/[<>"'&]/g,'').trim().slice(0,12);
+    if (v) state.char.name = v;
+  }
+}
+function setGender(g){
+  grabName();
+  if (state.char.name === DEFAULT_NAMES.f || state.char.name === DEFAULT_NAMES.m)
+    state.char.name = DEFAULT_NAMES[g];
+  state.char.g = g;
+  save(); sndClick(); renderCharScreen();
+}
+function saveChar(){ grabName(); save(); sndCorrect(); renderHome(); }
+
+/* ---------- world intro dialog ---------- */
+function renderIntro(wi, li, idx){
+  setChrome('task');
+  sndClick();
+  const W = WORLDS[wi];
+  const line = W.intro[idx];
+  const who = line[0]==='h' ? W.cast.h
+            : line[0]==='v' ? W.cast.v
+            : { n:T()+' '+N(), e:AV() };
+  const text = line[1].replace(/\{N\}/g, N());
+  const last = idx === W.intro.length - 1;
+  const dots = W.intro.map((_,i)=> i===idx?'●':'○').join(' ');
+  const speaker = line[0]==='p'
+    ? '<img class="speaker-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
+    : '<span class="speaker">'+who.e+'</span>';
+  app.innerHTML =
+    '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
+    '<div class="intro-scene">'+
+    '<div class="intro-world">'+W.icon+' '+W.name+'</div>'+
+    speaker+
+    '<div class="bubble'+(line[0]==='v'?' villain':'')+'"><span class="who">'+who.n+'</span>'+text+'</div>'+
+    '<button class="btn-next" onclick="'+
+      (last ? 'introDone('+wi+','+li+')' : 'renderIntro('+wi+','+li+','+(idx+1)+')')+'">'+
+      (last ? 'В путь! 🚀' : 'Дальше ➜')+'</button>'+
+    '<div class="intro-dots">'+dots+'</div>'+
+    '</div>';
+  if (line[0]==='v') beep(180,.25,0,'sawtooth',.05);
+}
+function introDone(wi, li){ state.intros[wi] = true; save(); beginLevel(wi, li); }
+
+/* ---------- level play ---------- */
+let cur = null;
+
+function startLevel(wi, li){
+  sndClick();
+  if (!state.intros[wi] && WORLDS[wi].intro){ renderIntro(wi, li, 0); return; }
+  beginLevel(wi, li);
+}
+
+function beginLevel(wi, li){
+  const W = WORLDS[wi], L = W.levels[li];
+  const tasks = [];
+  for (let i=0;i<TASKS_PER_LEVEL;i++) tasks.push(L.gen(W.cast));
+  if (L.boss){
+    const v = W.cast.v;
+    tasks[0].prompt = '<span class="villain">'+v.e+' <b>'+v.n+'</b> '+nvb(v,'преградил','преградила')+
+      ' путь: «Реши мои задачи — пропущу дальше!»</span><br><br>'+tasks[0].prompt;
+  }
+  cur = { wi, li, tasks, idx:0, mistakes:0, firstTry:true, input:'', rankBefore:rankInfo().name };
+  renderTask();
+}
+
+function renderTask(){
+  setChrome('task');
+  const t = cur.tasks[cur.idx];
+  cur.firstTry = true; cur.input = '';
+  let answerArea = '';
+  if (t.kind==='choice'){
+    answerArea = '<div class="options">'+ t.options.map((o,i)=>
+      '<button class="opt'+(String(o).length>3?' txt':'')+'" id="opt'+i+'" onclick="tryChoice('+i+')">'+o+'</button>').join('') +'</div>';
+  } else {
+    answerArea =
+      '<div class="answer-display" id="disp">&nbsp;</div>'+
+      '<div class="keypad">'+
+      [1,2,3,4,5,6,7,8,9].map(d=>'<button class="key" onclick="kp(\''+d+'\')">'+d+'</button>').join('')+
+      '<button class="key del" onclick="kp(\'del\')">⌫</button>'+
+      '<button class="key" onclick="kp(\'0\')">0</button>'+
+      '<button class="key act" onclick="kp(\'ok\')">✓</button>'+
+      '</div>';
+  }
+  app.innerHTML =
+    '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button>'+
+    '<div class="progress"><div style="width:'+(100*cur.idx/TASKS_PER_LEVEL)+'%"></div></div></div>'+
+    '<div class="card" id="card">'+
+    '<div class="prompt">'+t.prompt+'</div>'+
+    '<div class="visual">'+t.visual+'</div>'+
+    answerArea+
+    '<div class="feedback" id="fb"></div>'+
+    '<div id="nextArea"></div>'+
+    '</div>';
+}
+
+function tryChoice(i){
+  const t = cur.tasks[cur.idx];
+  const btn = document.getElementById('opt'+i);
+  if (String(t.options[i]) === t.answer) correct(btn);
+  else wrong(btn);
+}
+
+function kp(k){
+  const disp = document.getElementById('disp');
+  if (k!=='ok') sndClick();
+  if (k==='del') cur.input = cur.input.slice(0,-1);
+  else if (k==='ok'){
+    if (!cur.input) return;
+    if (cur.input === cur.tasks[cur.idx].answer) correct(null);
+    else { wrong(null); cur.input=''; }
+  }
+  else if (cur.input.length<2) cur.input += k;
+  if (disp) disp.textContent = cur.input || ' ';
+}
+
+function correct(btn){
+  if (btn) btn.classList.add('right');
+  document.querySelectorAll('.opt,.key').forEach(b=>b.style.pointerEvents='none');
+  const gained = cur.firstTry ? 10 : 5;
+  state.xp += gained; save();
+  sndCorrect();
+  const fb = document.getElementById('fb');
+  fb.className = 'feedback good'; fb.textContent = pick(PRAISE)+' +'+gained+' XP';
+  confetti();
+  document.getElementById('nextArea').innerHTML =
+    '<button class="btn-next" onclick="nextTask()">'+
+    (cur.idx+1<TASKS_PER_LEVEL ? 'Дальше ➜' : 'Финиш! 🏁')+'</button>';
+}
+
+function wrong(btn){
+  if (btn) btn.classList.add('wrong');
+  sndWrong();
+  cur.mistakes++; cur.firstTry = false;
+  const card = document.getElementById('card');
+  card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+  const fb = document.getElementById('fb');
+  fb.className = 'feedback bad'; fb.textContent = pick(RETRY);
+  const disp = document.getElementById('disp');
+  if (disp) disp.textContent = ' ';
+}
+
+function nextTask(){
+  cur.idx++;
+  if (cur.idx < TASKS_PER_LEVEL) renderTask();
+  else if (cur.practice) finishPractice();
+  else finishLevel();
+}
+
+function finishLevel(){
+  const stars = cur.mistakes===0 ? 3 : (cur.mistakes<=2 ? 2 : 1);
+  const bonus = 20;
+  const worldsBefore = openWorldsCount();
+  state.xp += bonus;
+  state.levelStars[sKey(cur.wi,cur.li)] = Math.max(lvlStars(cur.wi,cur.li), stars);
+  save();
+  const newWorld = openWorldsCount() > worldsBefore
+    ? WORLDS[openWorldsCount()-1] : null;
+  const rankNow = rankInfo().name;
+  const rankUp = rankNow !== cur.rankBefore;
+  sndWin();
+  confetti(); setTimeout(confetti, 500);
+  setChrome('task');
+  app.innerHTML =
+    '<div class="card complete">'+
+    '<div class="big">🏆</div>'+
+    '<h2 style="color:#5a34c9">Уровень пройден!</h2>'+
+    '<div class="gotstars">'+'⭐'.repeat(stars)+'<span style="filter:grayscale(1);opacity:.4">'+'⭐'.repeat(3-stars)+'</span></div>'+
+    '<p>+'+bonus+' XP бонус за уровень!<br>'+T()+' '+N()+' — молодец! '+AV()+'🚀</p>'+
+    (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
+      '🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!<br><small>'+pick(QUOTES)+'</small></div>' : '')+
+    (newWorld ? '<div class="unlock-banner">🎉 Открыт новый мир: <b>'+newWorld.icon+' '+newWorld.name+'</b>!</div>' : '')+
+    '<button class="btn-next" onclick="renderHome()">На карту 🗺️</button>'+
+    '</div>';
+}
+
+renderHome();
+
+/* preload character art so avatars and rank-ups appear instantly */
+['f','m'].forEach(g=> RANK_FILES.forEach((_,i)=>{ const im = new Image(); im.src = charImg(g,i); }));
+
+/* ask the browser to keep our storage even under storage pressure */
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+
+/* offline support (works when served over http/https, e.g. GitHub Pages) */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.DS_Store
+# local notes & sources (not deployed)
+ROADMAP.md
+DEPLOY.md
+CHARACTER_PROMPTS.md
+characters/*.png
