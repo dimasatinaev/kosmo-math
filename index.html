@@ -192,12 +192,47 @@
     box-shadow:0 12px 28px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.12);
   }
   .streak-chip {
-    flex-shrink:0; display:flex; align-items:center; gap:3px;
-    background:linear-gradient(180deg,#ff9f40,#e0662f); color:#fff;
+    flex-shrink:0; display:flex; align-items:center; gap:3px; cursor:pointer;
+    background:linear-gradient(180deg,#ff9f40,#e0662f); color:#fff; border:none;
+    font-family:inherit;
     padding:7px 13px; border-radius:999px; font-size:15px; font-weight:bold;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 4px 12px rgba(224,102,47,.4);
+    transition:transform .12s;
   }
+  .streak-chip:active { transform:scale(.93); }
   .streak-chip.off { background:rgba(255,255,255,.12); box-shadow:none; opacity:.7; }
+
+  /* streak modal */
+  .streak-panel {
+    position:relative; width:100%; max-width:330px; border-radius:24px;
+    padding:26px 20px 18px; text-align:center;
+    background:#1d1650; border:1px solid rgba(255,255,255,.3); color:#fff;
+    box-shadow:0 24px 60px rgba(0,0,0,.6), 0 0 60px rgba(255,159,64,.15);
+    animation:pop .3s;
+  }
+  .streak-flame { font-size:64px; line-height:1;
+    filter:drop-shadow(0 6px 20px rgba(255,159,64,.55)); animation:dlgBob 1.6s ease-in-out infinite; }
+  .streak-num { font-size:46px; font-weight:bold; margin-top:-6px;
+    text-shadow:0 3px 12px rgba(0,0,0,.4); }
+  .streak-cap { color:#ffd76e; font-weight:bold; font-size:19px; margin-top:-4px; }
+  .week {
+    display:flex; gap:4px; margin:18px 0 12px; padding:12px 8px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15); border-radius:18px;
+  }
+  .wd { flex:1; text-align:center; }
+  .wd .lbl { font-size:11px; opacity:.75; }
+  .wd.today .lbl { color:#ffd76e; font-weight:bold; opacity:1; }
+  .wd .c {
+    width:27px; height:27px; margin:6px auto 0; border-radius:50%;
+    background:rgba(255,255,255,.13); display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:bold; color:#fff;
+  }
+  .wd .c.done { background:linear-gradient(180deg,#ffb340,#e0662f);
+    box-shadow:0 3px 8px rgba(224,102,47,.4); }
+  .wd .c.now { border:2px dashed rgba(255,215,110,.6); }
+  .streak-desc { font-size:13.5px; line-height:1.5; opacity:.85; padding:0 4px; }
+  .streak-desc b { color:#ffd76e; }
+  .streak-best { margin-top:10px; font-size:14px; font-weight:bold; opacity:.9; }
   .daily-mid { flex:1; min-width:0; }
   .daily-title { font-size:11px; text-transform:uppercase; letter-spacing:.5px; opacity:.7; }
   .daily-text { font-size:14px; font-weight:bold; margin:2px 0 6px; }
@@ -1422,7 +1457,7 @@ function renderHome(){
   ensureDaily();
   const m = todaysMission(), mp = missionProgress(), streak = streakCurrent();
   html += '<div class="daily">'+
-    '<div class="streak-chip'+(streak>0?'':' off')+'" title="'+tr('Дней подряд','Day streak')+'">🔥 '+streak+'</div>'+
+    '<button class="streak-chip'+(streak>0?'':' off')+'" onclick="showStreak()" title="'+tr('Дней подряд','Day streak')+'">🔥 '+streak+'</button>'+
     '<div class="daily-mid">'+
       '<div class="daily-title">'+tr('Миссия дня','Daily mission')+'</div>'+
       '<div class="daily-text">'+m.icon+' '+(LANG()==='en'?m.en:m.ru)+'</div>'+
@@ -1503,6 +1538,9 @@ function ensureDaily(){
   if (!state.daily || state.daily.date !== t)
     state.daily = { date:t, tasks:0, firstTry:0, levels:0, practice:0, claimed:false };
   if (!state.streak) state.streak = { count:0, last:'', best:0 };
+  if (!state.playDays) state.playDays = [];
+  if (state.streak.last && !state.playDays.includes(state.streak.last))
+    state.playDays.push(state.streak.last);
 }
 const MISSIONS = [
   { id:'tasks',    target:10, icon:'🧮', ru:'Реши 10 задач',                 en:'Solve 10 problems' },
@@ -1529,12 +1567,60 @@ function streakCurrent(){
 function updateStreak(){        // → true when today was just added to the streak
   ensureDaily();
   const t = todayStr(), s = state.streak;
+  if (!state.playDays.includes(t)) state.playDays.push(t);
+  state.playDays = state.playDays.slice(-21);
   if (s.last === t) return false;
   s.count = isYesterday(s.last) ? s.count + 1 : 1;
   s.last = t;
   s.best = Math.max(s.best||0, s.count);
   return true;
 }
+/* streak modal: big flame + this week + best */
+function showStreak(){
+  ensureDaily();
+  sndClick();
+  const cnt = streakCurrent();
+  const labels = LANG()==='en'
+    ? ['Mo','Tu','We','Th','Fr','Sa','Su']
+    : ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const now = new Date();
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay()+6)%7));
+  const t = todayStr();
+  let week = '';
+  for (let i=0;i<7;i++){
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i);
+    const ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const played = state.playDays.includes(ds);
+    const isToday = ds === t;
+    week += '<div class="wd'+(isToday?' today':'')+'"><span class="lbl">'+labels[i]+'</span>'+
+      '<span class="c'+(played?' done':'')+(isToday&&!played?' now':'')+'">'+
+      (played ? (isToday?'🔥':'✓') : '')+'</span></div>';
+  }
+  const el = document.createElement('div');
+  el.className = 'card-overlay';
+  el.id = 'streakOverlay';
+  el.addEventListener('click', e => { if (e.target === el) closeStreak(); });
+  el.innerHTML =
+    '<div class="streak-panel">'+
+    '<div class="streak-flame">🔥</div>'+
+    '<div class="streak-num">'+cnt+'</div>'+
+    '<div class="streak-cap">'+
+      tr(plural(cnt,['день подряд!','дня подряд!','дней подряд!']),'day streak!')+'</div>'+
+    '<div class="week">'+week+'</div>'+
+    '<div class="streak-desc">'+
+      tr('<b>Серия</b> — это сколько дней подряд ты решаешь задачи. Пропустишь день — огонёк погаснет!',
+         'A <b>streak</b> counts how many days in a row you practice. Miss a day and the flame goes out!')+'</div>'+
+    (state.streak.best>1 ? '<div class="streak-best">🏆 '+tr('Рекорд: ','Best: ')+state.streak.best+'</div>' : '')+
+    '<button class="btn-next" style="margin-top:14px" onclick="closeStreak()">'+
+      tr('Продолжить','Continue')+'</button>'+
+    '</div>';
+  document.body.appendChild(el);
+}
+function closeStreak(){
+  const el = document.getElementById('streakOverlay');
+  if (el){ el.remove(); sndClick(); }
+}
+
 function claimDaily(){
   ensureDaily();
   if (state.daily.claimed || missionProgress() < todaysMission().target) return;
