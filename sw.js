@@ -1,5 +1,5 @@
 /* Космоматематика — service worker: offline play, cache-first */
-const CACHE = 'kosmomath-v7';
+const CACHE = 'kosmomath-v8';
 const CHARS = ['Nika','Kogot'];
 const RANKS = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
 const NPCS = [1,2,3,4,5,6].flatMap(n => ['h','v'].map(k => 'characters/web/npc_'+n+'_'+k+'_3d.png'));
