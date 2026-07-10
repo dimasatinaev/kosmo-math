@@ -397,10 +397,10 @@
     animation:bob 1.6s ease-in-out infinite; }
   @keyframes bob { 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,-7px);} }
 
-  .reset { display:block; margin:24px auto 0; background:none; border:none; color:rgba(255,255,255,.45);
+  .reset { display:block; margin:24px auto 0; background:none; border:none; color:rgba(255,255,255,.65);
     font-family:inherit; font-size:12px; cursor:pointer; text-decoration:underline; }
-  .legal { text-align:center; margin-top:14px; font-size:11px; color:rgba(255,255,255,.35); }
-  .legal a { color:rgba(255,255,255,.5); }
+  .legal { text-align:center; margin-top:14px; font-size:11px; color:rgba(255,255,255,.55); }
+  .legal a { color:rgba(255,255,255,.7); }
 
   /* ---------- character screen ---------- */
   .char-title { text-align:center; font-size:24px; margin:14px 0 4px; color:#ffd76e; }
@@ -582,6 +582,23 @@
     .node-row:nth-child(even){ transform:translateX(58px); }
     .visual{ font-size:28px; }
   }
+
+  /* ---------- accessibility ---------- */
+  button:focus-visible, .node:focus-visible, [role="button"]:focus-visible, a:focus-visible {
+    outline:3px solid #ffd76e; outline-offset:2px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    /* decorative loops off; feedback stays */
+    .bg-star, .star-drift, .shoot, .rocket-marker, .speaker.talking,
+    .streak-flame, .daily-claim { animation:none !important; }
+    .node.current::after { animation:none; transform:scale(1); opacity:.65; }
+    .intro-scene.evil.revealing .bubble,
+    .intro-scene.evil.revealing .speaker,
+    .intro-scene.evil.revealing .btn-next { animation:none; }
+    .conf { display:none; }
+    .fly-away { animation:flyFade 1s forwards; }
+  }
+  @keyframes flyFade { to { opacity:0; } }
 </style>
 </head>
 <body>
@@ -715,6 +732,7 @@ function stopSpeech(){ try{ if ('speechSynthesis' in window) speechSynthesis.can
 function sayTask(){ if (cur) speak(cur.tasks[cur.idx].prompt, true); }
 
 /* ================= helpers ================= */
+const reducedMotion = ()=> !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const rnd = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
 const pick = arr => arr[rnd(0,arr.length-1)];
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
@@ -1356,7 +1374,8 @@ const starLayers = [];
     ticking = true;
     requestAnimationFrame(()=>{
       const y = window.scrollY || 0;
-      starLayers.forEach(l=> l.el.style.transform = 'translateY('+(-y*l.k)+'px)');
+      if (!reducedMotion())
+        starLayers.forEach(l=> l.el.style.transform = 'translateY('+(-y*l.k)+'px)');
       updateHeroMini(y);
       ticking = false;
     });
@@ -1365,6 +1384,7 @@ const starLayers = [];
 
 /* ================= confetti ================= */
 function confetti(){
+  if (reducedMotion()) return;
   const colors = ['#ffd76e','#ff6b9d','#5fe19a','#6bb5ff','#c88bff'];
   for (let i=0;i<40;i++){
     const c = document.createElement('div');
@@ -1381,7 +1401,7 @@ const app = document.getElementById('app');
 
 /* fixed chrome: sound button (top right) + bottom nav */
 document.body.insertAdjacentHTML('beforeend',
-  '<button class="sound-fab" id="soundFab" onclick="toggleSound()">🔊</button>'+
+  '<button class="sound-fab" id="soundFab" aria-label="sound on/off" onclick="toggleSound()">🔊</button>'+
   '<nav class="bottomnav" id="bottomNav"></nav>');
 function buildNav(){
   document.getElementById('bottomNav').innerHTML =
@@ -1438,6 +1458,8 @@ function renderHome(){
   let html =
     '<div class="hero" id="heroPanel" onclick="heroTap()">'+
     '<div class="avatar3d'+(state.char.g==='f'?' girl':'')+'" onclick="showCharCard()" '+
+      'role="button" tabindex="0" aria-label="'+tr('Карточка героя','Hero card')+'" '+
+      'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();showCharCard();}" '+
       'title="'+tr('Карточка героя','Hero card')+'" style="background-image:url(\''+
       charImg(state.char.g, r.idx)+'\')"></div>'+
     '<div class="hero-info">'+
@@ -1744,7 +1766,7 @@ function showCharCard(){
   el.addEventListener('click', e => { if (e.target === el) closeCharCard(); });
   el.innerHTML =
     '<div class="game-card'+(state.char.g==='f'?' girl':'')+'">'+
-    '<button class="gc-close" onclick="closeCharCard()">✕</button>'+
+    '<button class="gc-close" aria-label="close" onclick="closeCharCard()">✕</button>'+
     '<div class="gc-inner">'+
     '<div class="gc-top"><span class="gc-class">'+AV()+' '+T()+'</span>'+
       '<span class="gc-num">№ 0'+(r.idx+1)+'</span></div>'+
@@ -1863,7 +1885,7 @@ function renderAchievements(){
 function renderCharScreen(){
   setChrome('profile');
   app.innerHTML =
-    '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
+    '<div class="topbar"><button class="btn-close" aria-label="close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
     '<div class="char-title">'+tr('Выбери героя ✨','Choose your hero ✨')+'</div>'+
     '<div class="char-cards">'+
     '<button class="char-card'+(state.char.g==='f'?' sel':'')+'" onclick="setGender(\'f\')">'+
@@ -1898,6 +1920,9 @@ function setVoice(v){
   save(); sndClick(); stopSpeech(); renderCharScreen();
 }
 
+function syncDocLang(){
+  try { document.documentElement.lang = LANG(); } catch(e){}
+}
 function setLang(l){
   if (state.lang === l) return;
   grabName();
@@ -1905,6 +1930,7 @@ function setLang(l){
   const isDefault = ['f','m'].some(g => ['ru','en'].some(lg => state.char.name === DEFAULT_NAMES[g][lg]));
   state.lang = l;
   if (isDefault) state.char.name = DEFAULT_NAMES[state.char.g][l];
+  syncDocLang();
   save(); sndClick(); buildNav(); renderCharScreen();
 }
 
@@ -1973,6 +1999,7 @@ function startReveal(text, kind){
   const el = document.getElementById('dlgText');
   if (!el) return;
   el._full = text;
+  if (reducedMotion()){ el.textContent = text; finishReveal(); return; }   // instant text
   let i = 0;
   const total = text.length;
   const useBlips = !ttsOk();   // real voice off/unavailable → the text "speaks" in beeps
@@ -2031,7 +2058,7 @@ function renderDialogScene(wi, li, idx, mode){
     : tr('Дальше ➜','Next ➜');
   app.innerHTML =
     (mode==='intro'
-      ? '<div class="topbar"><button class="btn-close" onclick="finishReveal();renderHome()">✕</button><div style="flex:1"></div></div>'
+      ? '<div class="topbar"><button class="btn-close" aria-label="close" onclick="finishReveal();renderHome()">✕</button><div style="flex:1"></div></div>'
       : '')+
     '<div class="evilfx'+(evil?' on':'')+'"></div>'+
     '<div class="intro-scene'+(evil?' evil revealing':'')+'" id="dlgScene">'+
@@ -2114,10 +2141,10 @@ function renderTask(){
       '</div>';
   }
   app.innerHTML =
-    '<div class="topbar"><button class="btn-close" onclick="renderHome()">✕</button>'+
+    '<div class="topbar"><button class="btn-close" aria-label="close" onclick="renderHome()">✕</button>'+
     '<div class="progress"><div style="width:'+(100*cur.idx/TASKS_PER_LEVEL)+'%"></div></div></div>'+
     '<div class="card" id="card">'+
-    (ttsOk() ? '<button class="say-btn" onclick="sayTask()" title="'+tr('Прочитать вслух','Read aloud')+'">🔊</button>' : '')+
+    (ttsOk() ? '<button class="say-btn" onclick="sayTask()" aria-label="'+tr('Прочитать вслух','Read aloud')+'" title="'+tr('Прочитать вслух','Read aloud')+'">🔊</button>' : '')+
     '<div class="prompt">'+t.prompt+'</div>'+
     '<div class="visual">'+t.visual+'</div>'+
     answerArea+
@@ -2228,6 +2255,7 @@ function finishLevel(){
     '</div>';
 }
 
+syncDocLang();
 renderHome();
 
 /* preload character art so avatars and rank-ups appear instantly */
