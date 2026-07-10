@@ -477,6 +477,21 @@
   @keyframes popIn { from { opacity:0; transform:translateY(12px) scale(.8); } }
   @keyframes bubbleIn { from { opacity:0; transform:translateY(14px) scale(.96); } }
   .speaker.talking { animation:dlgBob .5s ease-in-out infinite; }
+  /* NPC portrait speaker */
+  .speaker-npc {
+    width:128px; height:128px; display:block; margin:0 auto; object-fit:cover;
+    border-radius:28px; border:2px solid rgba(255,255,255,.4); background:#f4f2f7;
+    box-shadow:0 14px 32px rgba(0,0,0,.45);
+  }
+  .intro-scene .speaker-npc { animation:popIn .4s var(--ease-enter) both; }
+  .speaker-npc.talking { animation:dlgBob .5s ease-in-out infinite; }
+  .intro-scene.evil .speaker-npc { border-color:rgba(224,73,47,.65);
+    box-shadow:0 14px 32px rgba(0,0,0,.45), 0 0 34px rgba(224,73,47,.5); }
+  .intro-scene.evil.revealing .speaker-npc { animation:dlgJitter .19s infinite; }
+  /* NPC mini-portrait inside map pills (emoji sits behind as fallback) */
+  .npc-pill .npc-em { position:relative; overflow:hidden; }
+  .npc-pill .npc-em img { position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; border-radius:50%; }
   @keyframes dlgBob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
   .bubble .dlg-text { white-space:pre-wrap; min-height:2.9em; display:block; }
   .evilfx { position:fixed; inset:0; pointer-events:none; z-index:5; opacity:0; transition:opacity .35s;
@@ -640,6 +655,7 @@
     .fly-away { animation:flyFade 1s forwards; }
     #app.screen-in, .intro-scene .speaker, .intro-scene .speaker-img,
     .intro-scene .bubble, .xpbar > div::after, .nav-btn .ic { animation:none !important; transition:none !important; }
+    .speaker-npc:not(.fly-away) { animation:none !important; }
   }
   @keyframes flyFade { to { opacity:0; } }
 </style>
@@ -709,6 +725,8 @@ const RANK_FILES = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_
 function charImg(g, ri){
   return 'characters/web/'+(g==='f'?'Nika':'Kogot')+'_'+RANK_FILES[ri]+'_3d.png';
 }
+/* NPC portraits: characters/web/npc_{world}_{h|v}_3d.png (emoji fallback on error) */
+function npcImg(wi, kind){ return 'characters/web/npc_'+(wi+1)+'_'+kind+'_3d.png'; }
 function totalStars(){ return Object.values(state.levelStars).reduce((a,b)=>a+b,0); }
 
 /* ================= sounds (WebAudio) ================= */
@@ -1560,15 +1578,17 @@ function renderHome(){
     html += '<div class="world" style="background:'+w.tint+'">'+deco+
       '<div class="world-head"><h2>'+w.icon+' '+w.name[LANG()]+(cleared?' ✨':'')+'</h2>';
     if (open){
+      const hEm = '<span class="npc-em">'+w.cast.h.e+'<img src="'+npcImg(wi,'h')+'" alt="" onerror="this.remove()"></span>';
+      const vEm = '<span class="npc-em">'+w.cast.v.e+'<img src="'+npcImg(wi,'v')+'" alt="" onerror="this.remove()"></span>';
       html += '<div class="world-npc">'+
         (cleared
-          ? '<span class="npc-pill h">'+hn(w.cast)+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
+          ? '<span class="npc-pill h">'+hn(w.cast)+' '+hEm+'</span>'+
             tr(' празднует победу · ', ' celebrates victory · ')+
-            '<span class="npc-pill v gone">'+vn(w.cast)+' <span class="npc-em">'+w.cast.v.e+'</span></span>'+
+            '<span class="npc-pill v gone">'+vn(w.cast)+' '+vEm+'</span>'+
             tr(' '+nvb(w.cast.v,'улетел','улетела')+'! 🌟', ' flew away! 🌟')
-          : '<span class="npc-pill h">'+hn(w.cast)+' <span class="npc-em">'+w.cast.h.e+'</span></span>'+
+          : '<span class="npc-pill h">'+hn(w.cast)+' '+hEm+'</span>'+
             tr(' ждёт помощи · берегись: ', ' needs your help · beware of ')+
-            '<span class="npc-pill v">'+vn(w.cast)+' <span class="npc-em">'+w.cast.v.e+'</span></span>!')+
+            '<span class="npc-pill v">'+vn(w.cast)+' '+vEm+'</span>!')+
         '</div></div>';
       html += '<div class="path">';
       w.levels.forEach((L, li)=>{
@@ -2109,7 +2129,10 @@ function renderDialogScene(wi, li, idx, mode){
   const dots = lines.map((_,i)=> '<i'+(i===idx?' class="on"':'')+'></i>').join('');
   const speaker = line[0]==='p'
     ? '<img class="speaker-img" id="dlgSpeaker" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
-    : '<span class="speaker'+(evil?'':' talking')+'" id="dlgSpeaker">'+whoE+'</span>';
+    : '<span class="speaker-wrap">'+
+      '<img class="speaker-npc'+(evil?'':' talking')+'" id="dlgSpeaker" src="'+npcImg(wi, line[0])+'" alt="" '+
+      'onerror="this.parentNode.innerHTML=\'<span class=&quot;speaker'+(evil?'':' talking')+'&quot; id=&quot;dlgSpeaker&quot;>'+whoE+'</span>\'">'+
+      '</span>';
   const nextClick = last
     ? (mode==='intro' ? 'introDone('+wi+','+li+')' : 'outroDone('+wi+')')
     : 'renderDialogScene('+wi+','+li+','+(idx+1)+',\''+mode+'\')';
@@ -2149,7 +2172,10 @@ function outroDone(wi){
   app.innerHTML =
     '<div class="intro-scene">'+
     '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+' ✨</div>'+
-    '<span class="speaker fly-away">'+W.cast.v.e+'</span>'+
+    '<span class="speaker-wrap">'+
+    '<img class="speaker-npc fly-away" src="'+npcImg(wi,'v')+'" alt="" '+
+      'onerror="this.parentNode.innerHTML=\'<span class=&quot;speaker fly-away&quot;>'+W.cast.v.e+'</span>\'">'+
+    '</span>'+
     '<div class="char-sub" style="font-size:18px;margin-top:20px">'+
       tr(vn(W.cast)+' улетает всё дальше и дальше...', vn(W.cast)+' flies away, farther and farther...')+'<br>'+
       tr('Мир очищен! 🌟','World cleared! 🌟')+'</div>'+
@@ -2320,6 +2346,7 @@ renderHome();
 
 /* preload character art so avatars and rank-ups appear instantly */
 ['f','m'].forEach(g=> RANK_FILES.forEach((_,i)=>{ const im = new Image(); im.src = charImg(g,i); }));
+WORLDS.forEach((_,wi)=> ['h','v'].forEach(k=>{ const im = new Image(); im.src = npcImg(wi,k); }));
 
 /* ask the browser to keep our storage even under storage pressure */
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
