@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Космоматика">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playpen+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;1000&family=Playpen+Sans:wght@400;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -18,13 +18,25 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
       touch-action:manipulation; }
+  :root {
+    --violet:#7c5cff; --violet-deep:#5a34c9; --gold:#ffc94d; --gold-deep:#ff9f40;
+    --ink:#3a3552; --ink-soft:#7d74a0;
+    --ease-enter:cubic-bezier(.22,1,.36,1);
+  }
   button, .node, .visual, h1, h2 { user-select:none; -webkit-user-select:none; }
   html,body { height:100%; }
   body {
-    font-family:'Playpen Sans','Comic Sans MS','Chalkboard SE','Segoe UI',sans-serif;
+    font-family:'Nunito','Segoe UI','Comic Sans MS',sans-serif; font-weight:600;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
     background:#12123f;
     color:#fff; min-height:100vh; overflow-x:hidden;
   }
+  /* display type: heavy rounded Nunito; Playpen keeps the characters' voice */
+  h1, h2, .btn-next, .practice-all, .opt, .key, .daily-claim, .char-title, .gc-name,
+  .intro-world, .complete h2, .streak-num, .streak-cap, .bubble .who,
+  .rank-pill, .class-pill, .npc-pill, .streak-chip, .gc-num
+  { font-family:'Nunito',sans-serif; font-weight:1000; letter-spacing:.2px; }
+  .dlg-text, .gc-desc { font-family:'Playpen Sans','Nunito',sans-serif; }
   /* fixed, non-scrolling gradient + soft nebula glows (reliable on iOS too) */
   body::before {
     content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
@@ -57,6 +69,9 @@
 
   #app { position:relative; z-index:1; max-width:560px; margin:0 auto;
     padding:calc(12px + env(safe-area-inset-top)) 14px calc(100px + env(safe-area-inset-bottom)); }
+  /* gentle screen-to-screen continuity */
+  #app.screen-in { animation:screenIn .32s var(--ease-enter); }
+  @keyframes screenIn { from { opacity:0; transform:translateY(10px); } }
 
   /* ---------- header ---------- */
   .hero {
@@ -268,12 +283,15 @@
     box-shadow:0 16px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14);
   }
   .nav-btn {
-    background:none; border:none; color:#fff; font-family:inherit; cursor:pointer;
+    background:none; border:none; color:#fff; font-family:inherit; font-weight:800; cursor:pointer;
     display:flex; flex-direction:column; align-items:center; gap:2px;
     font-size:11px; padding:6px 12px; border-radius:18px; opacity:.7;
+    transition:opacity .2s, background .2s;
   }
-  .nav-btn .ic { font-size:22px; line-height:1; height:26px; display:flex; align-items:center; }
+  .nav-btn .ic { font-size:22px; line-height:1; height:26px; display:flex; align-items:center;
+    transition:transform .25s var(--ease-enter); }
   .nav-btn.active { opacity:1; background:rgba(255,255,255,.14); }
+  .nav-btn.active .ic { transform:translateY(-2px) scale(1.15); }
   .nav-avatar {
     width:26px; height:26px; border-radius:50%; display:flex; align-items:center;
     justify-content:center; font-size:16px;
@@ -310,7 +328,14 @@
   .xpbar { height:13px; background:rgba(0,0,0,.4); border-radius:8px; overflow:hidden;
     border:1px solid rgba(255,255,255,.10); box-shadow:inset 0 2px 4px rgba(0,0,0,.4); }
   .xpbar > div { height:100%; background:linear-gradient(90deg,#6ee7a0,#2fd573); border-radius:8px;
-    transition:width .6s; box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 10px rgba(47,213,115,.6); }
+    transition:width .6s; box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 10px rgba(47,213,115,.6);
+    position:relative; overflow:hidden; }
+  .xpbar > div::after {   /* periodic shine sweep */
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+    transform:translateX(-100%); animation:shine 3.4s ease-in-out infinite;
+  }
+  @keyframes shine { 0%{transform:translateX(-100%)} 55%,100%{transform:translateX(100%)} }
   .xptext { font-size:11px; opacity:.85; margin-top:3px; }
   .starcount { font-size:15px; margin-top:4px; }
 
@@ -429,9 +454,9 @@
   .intro-world { font-size:22px; color:#ffd76e; margin-bottom:10px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
   .speaker { font-size:68px; display:block; margin:10px auto 4px; animation:pop .4s; }
   .bubble {
-    position:relative; background:linear-gradient(180deg,#ffffff,#f6f3ff); color:#333;
-    border-radius:22px; padding:16px 20px; margin:16px auto 20px; max-width:420px;
-    font-size:17px; line-height:1.45; text-align:left;
+    position:relative; background:linear-gradient(180deg,#ffffff,#f6f3ff); color:var(--ink);
+    border-radius:24px; padding:16px 20px; margin:16px auto 20px; max-width:420px;
+    font-size:17px; line-height:1.48; text-align:left;
     box-shadow:0 16px 36px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.08);
   }
   .speaker { filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)); }
@@ -444,6 +469,10 @@
   .intro-dots i.on { background:#fff; transform:scale(1.2); }
 
   /* dialog reveal effects (typewriter, talking, villain mode) */
+  .intro-scene .speaker, .intro-scene .speaker-img { animation:popIn .4s var(--ease-enter) both; }
+  .intro-scene .bubble { animation:bubbleIn .35s var(--ease-enter) .04s both; }
+  @keyframes popIn { from { opacity:0; transform:translateY(12px) scale(.8); } }
+  @keyframes bubbleIn { from { opacity:0; transform:translateY(14px) scale(.96); } }
   .speaker.talking { animation:dlgBob .5s ease-in-out infinite; }
   @keyframes dlgBob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
   .bubble .dlg-text { white-space:pre-wrap; min-height:2.9em; display:block; }
@@ -495,7 +524,8 @@
   .card.shake { animation:shake .4s; }
   @keyframes shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-10px);} 40%,80%{transform:translateX(10px);} }
 
-  .prompt { font-size:18px; line-height:1.45; margin-bottom:16px; text-align:center; }
+  .prompt { font-size:18px; font-weight:700; color:var(--ink); line-height:1.45;
+    margin-bottom:16px; text-align:center; }
   .prompt .villain { color:#c0392b; }
   .visual { text-align:center; font-size:32px; line-height:1.5; margin-bottom:18px; word-spacing:6px; }
   .visual .grp { display:inline-block; background:linear-gradient(180deg,#f6f2ff,#efe8ff);
@@ -528,7 +558,15 @@
   .opt.txt { font-size:17px; }
   .opt:active { transform:translateY(3px); box-shadow:0 2px 0 #4a26a8; }
   .opt.wrong { background:linear-gradient(180deg,#c9c9d6,#a6a6ba); box-shadow:0 5px 0 #8b8ba0; pointer-events:none; }
-  .opt.right { background:linear-gradient(180deg,#5fe19a,#1faf62); box-shadow:0 5px 0 #12824a, 0 0 18px rgba(95,225,154,.5); }
+  .opt.right { background:linear-gradient(180deg,#5fe19a,#1faf62);
+    box-shadow:0 5px 0 #12824a, 0 0 18px rgba(95,225,154,.5);
+    animation:popCorrect .38s var(--ease-enter); }
+  @keyframes popCorrect { 0%{transform:scale(1)} 45%{transform:scale(1.12)} 100%{transform:scale(1)} }
+  @media (hover:hover){
+    .btn-next:hover, .opt:hover:not(.wrong), .key:hover, .practice-all:hover,
+    .daily-claim:hover, .topic:hover { filter:brightness(1.06); }
+    .node:not(.locked):hover { transform:translateY(-3px); }
+  }
 
   .answer-display {
     text-align:center; font-size:42px; font-weight:bold; color:#5a34c9;
@@ -597,6 +635,8 @@
     .intro-scene.evil.revealing .btn-next { animation:none; }
     .conf { display:none; }
     .fly-away { animation:flyFade 1s forwards; }
+    #app.screen-in, .intro-scene .speaker, .intro-scene .speaker-img,
+    .intro-scene .bubble, .xpbar > div::after, .nav-btn .ic { animation:none !important; transition:none !important; }
   }
   @keyframes flyFade { to { opacity:0; } }
 </style>
@@ -1389,7 +1429,10 @@ function confetti(){
   for (let i=0;i<40;i++){
     const c = document.createElement('div');
     c.className = 'conf';
+    const w = 6 + Math.random()*7, h = w * (0.7 + Math.random()*0.9);
     c.style.cssText = 'left:'+Math.random()*100+'vw;background:'+pick(colors)+
+      ';width:'+w.toFixed(1)+'px;height:'+h.toFixed(1)+'px'+
+      ';border-radius:'+(Math.random()<0.45?'50%':'2px')+
       ';animation-duration:'+(1.4+Math.random()*1.4)+'s;animation-delay:'+(Math.random()*0.3)+'s;';
     document.body.appendChild(c);
     setTimeout(()=>c.remove(), 3200);
@@ -1412,7 +1455,14 @@ function buildNav(){
 }
 buildNav();
 
+let lastScreen = null;
 function setChrome(screen){
+  if (screen !== lastScreen && app.classList){   // replay the screen entrance
+    app.classList.remove('screen-in');
+    void app.offsetWidth;
+    app.classList.add('screen-in');
+  }
+  lastScreen = screen;
   const f = document.getElementById('soundFab');
   if (f) f.textContent = state.sound ? '🔊' : '🔇';
   const nav = document.getElementById('bottomNav');

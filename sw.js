@@ -1,5 +1,5 @@
 /* Космоматематика — service worker: offline play, cache-first */
-const CACHE = 'kosmomath-v5';
+const CACHE = 'kosmomath-v6';
 const CHARS = ['Nika','Kogot'];
 const RANKS = ['01_Cadet','02_Trainee_Pilot','03_Pilot','04_Navigator','05_Captain','06_Galaxy_Admiral'];
 const ASSETS = [
