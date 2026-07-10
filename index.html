@@ -290,8 +290,11 @@
   }
   .nav-btn .ic { font-size:22px; line-height:1; height:26px; display:flex; align-items:center;
     transition:transform .25s var(--ease-enter); }
-  .nav-btn.active { opacity:1; background:rgba(255,255,255,.14); }
-  .nav-btn.active .ic { transform:translateY(-2px) scale(1.15); }
+  .nav-btn .ic svg { width:22px; height:22px; }
+  .nav-btn.active { opacity:1; background:rgba(255,255,255,.14); color:#ffd76e; }
+  .nav-btn.active .ic { transform:translateY(-2px) scale(1.12); }
+  .sound-fab { display:flex; align-items:center; justify-content:center; }
+  .sound-fab svg { width:20px; height:20px; }
   .nav-avatar {
     width:26px; height:26px; border-radius:50%; display:flex; align-items:center;
     justify-content:center; font-size:16px;
@@ -733,7 +736,7 @@ function toggleSound(){
   state.sound = !state.sound; save();
   if (state.sound) sndClick();
   const f = document.getElementById('soundFab');
-  if (f) f.textContent = state.sound ? '🔊' : '🔇';
+  if (f) f.innerHTML = state.sound ? ICONS.soundOn : ICONS.soundOff;
 }
 
 /* ================= speech (TTS, Web Speech API) ================= */
@@ -1442,16 +1445,23 @@ function confetti(){
 /* ================= screens ================= */
 const app = document.getElementById('app');
 
-/* fixed chrome: sound button (top right) + bottom nav */
+/* fixed chrome: sound button (top right) + bottom nav — custom stroke icons */
+const ICONS = {
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg>',
+  practice:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 5H5a3 3 0 0 0 3 4.5"/><path d="M16 5h3a3 3 0 0 1-3 4.5"/><path d="M12 13v4"/><path d="M8 21h8"/><path d="M10 21c0-2 .9-3 2-3s2 1 2 3"/></svg>',
+  soundOn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>',
+  soundOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m16 9 5 5"/><path d="m21 9-5 5"/></svg>',
+};
 document.body.insertAdjacentHTML('beforeend',
-  '<button class="sound-fab" id="soundFab" aria-label="sound on/off" onclick="toggleSound()">🔊</button>'+
+  '<button class="sound-fab" id="soundFab" aria-label="sound on/off" onclick="toggleSound()">'+ICONS.soundOn+'</button>'+
   '<nav class="bottomnav" id="bottomNav"></nav>');
 function buildNav(){
   document.getElementById('bottomNav').innerHTML =
-    '<button class="nav-btn" data-s="map" onclick="renderHome()"><span class="ic">🗺️</span>'+tr('Карта','Map')+'</button>'+
-    '<button class="nav-btn" data-s="practice" onclick="renderPractice()"><span class="ic">🔁</span>'+tr('Повторение','Practice')+'</button>'+
-    '<button class="nav-btn" data-s="achieve" onclick="renderAchievements()"><span class="ic">🏆</span>'+tr('Награды','Awards')+'</button>'+
-    '<button class="nav-btn" data-s="profile" onclick="renderCharScreen()"><span class="ic"><span class="nav-avatar" id="navAv">😺</span></span>'+tr('Профиль','Profile')+'</button>';
+    '<button class="nav-btn" data-s="map" onclick="renderHome()"><span class="ic">'+ICONS.map+'</span>'+tr('Карта','Map')+'</button>'+
+    '<button class="nav-btn" data-s="practice" onclick="renderPractice()"><span class="ic">'+ICONS.practice+'</span>'+tr('Повторение','Practice')+'</button>'+
+    '<button class="nav-btn" data-s="achieve" onclick="renderAchievements()"><span class="ic">'+ICONS.trophy+'</span>'+tr('Награды','Awards')+'</button>'+
+    '<button class="nav-btn" data-s="profile" onclick="renderCharScreen()"><span class="ic"><span class="nav-avatar" id="navAv"></span></span>'+tr('Профиль','Profile')+'</button>';
 }
 buildNav();
 
@@ -1464,7 +1474,7 @@ function setChrome(screen){
   }
   lastScreen = screen;
   const f = document.getElementById('soundFab');
-  if (f) f.textContent = state.sound ? '🔊' : '🔇';
+  if (f) f.innerHTML = state.sound ? ICONS.soundOn : ICONS.soundOff;
   const nav = document.getElementById('bottomNav');
   const show = ['map','practice','achieve','profile'].includes(screen);
   nav.style.display = show ? 'flex' : 'none';
