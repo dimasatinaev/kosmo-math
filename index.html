@@ -96,12 +96,11 @@
   .hero.mini .rank, .hero.mini .xprow { display:none; }
   .hero.mini h1 { font-size:20px; }
   .hero.mini .xpbar { margin-top:4px; }
-  /* bordered rounded avatar (opaque 3d art, head crop), square, tappable */
+  /* bordered rounded avatar (head crop over cosmic plate), square, tappable */
   .avatar3d {
     flex-shrink:0; width:116px; height:116px; cursor:pointer;
+    position:relative; overflow:hidden;
     border-radius:22px; border:2px solid rgba(160,120,255,.45);
-    background-size:165%; background-position:50% 10%; background-repeat:no-repeat;
-    background-color:#f2eef6;
     box-shadow:0 10px 24px rgba(0,0,0,.4), 0 0 20px rgba(120,80,230,.25);
     transition:transform .12s, width .25s, height .25s, border-radius .25s;
   }
@@ -166,8 +165,7 @@
   .gc-num { font-weight:bold; font-size:14px; color:#b0a8c8; letter-spacing:1px; }
   .gc-art {
     position:relative; aspect-ratio:1/1; border-radius:16px; border:2px solid #e6ddff;
-    background-size:cover; background-position:center;
-    box-shadow:inset 0 0 30px rgba(143,107,255,.15);
+    box-shadow:inset 0 0 30px rgba(0,0,0,.25);
   }
   .gc-name {
     position:absolute; bottom:-16px; left:50%; transform:translateX(-50%);
@@ -307,8 +305,7 @@
     background:radial-gradient(circle at 30% 30%,#ffd76e,#ff9040);
   }
   .nav-avatar.girl { background:radial-gradient(circle at 30% 30%,#ff9ecf,#d94f92); }
-  .nav-avatar.img { background-color:#fff; background-size:165%; background-position:50% 10%;
-    background-repeat:no-repeat; font-size:0; }
+  .nav-avatar.img { position:relative; overflow:hidden; font-size:0; }
 
   /* ---------- practice & achievements ---------- */
   .practice-all {
@@ -530,9 +527,10 @@
   }
   .npc-card img, .npc-card .npc-fallback {
     width:88px; height:88px; display:block; margin:0 auto 6px;
-    border-radius:14px; object-fit:cover; background:#fff;
+    border-radius:14px; object-fit:cover;
     box-shadow:0 4px 10px rgba(90,52,201,.18);
   }
+  .npc-card .npc-fallback { background:#fff; }
   .npc-card .npc-fallback { font-size:52px; line-height:88px; text-align:center; }
   .npc-card .role { font-size:9.5px; font-weight:800; text-transform:uppercase;
     letter-spacing:.7px; opacity:.65; }
@@ -659,7 +657,7 @@
   .feedback { text-align:center; font-size:20px; font-weight:bold; min-height:30px; margin-top:16px; }
   .feedback .fb-ava { width:44px; height:44px; border-radius:50%; object-fit:cover;
     vertical-align:middle; margin-right:8px; border:2px solid #fff;
-    box-shadow:0 4px 10px rgba(0,0,0,.22); background:#f4f2f7; }
+    box-shadow:0 4px 10px rgba(0,0,0,.22); }
   .fb-ava.happy { animation:reactHappy .8s var(--ease-enter) both; }
   .fb-ava.angry { animation:reactAngry .7s both; }
   @keyframes reactHappy {
@@ -766,6 +764,43 @@
   .say-btn { color:#5a34c9; }
   .say-btn svg { width:20px; height:20px; }
 
+  /* ---------- cosmic plates behind transparent character art ---------- */
+  .plate {
+    --p1:rgba(148,124,255,.55); --p2:rgba(93,60,190,.6); --pA:#4a3aa5; --pB:#241a5e;
+    background-color:var(--pB);
+    background-image:
+      radial-gradient(circle at 78% 18%, rgba(255,255,255,.9) 1.1px, transparent 1.9px),
+      radial-gradient(circle at 22% 30%, rgba(255,255,255,.8) 1px, transparent 1.7px),
+      radial-gradient(circle at 64% 76%, rgba(255,255,255,.7) 1px, transparent 1.6px),
+      radial-gradient(circle at 34% 84%, rgba(255,255,255,.55) .8px, transparent 1.4px),
+      radial-gradient(circle at 88% 56%, rgba(255,255,255,.5) .8px, transparent 1.4px),
+      radial-gradient(circle at 12% 62%, rgba(255,255,255,.45) .7px, transparent 1.3px),
+      radial-gradient(130% 95% at 28% 10%, var(--p1), transparent 62%),
+      radial-gradient(130% 110% at 78% 96%, var(--p2), transparent 66%),
+      linear-gradient(165deg, var(--pA), var(--pB));
+  }
+  .plate.girl    { --p1:rgba(255,150,210,.55); --p2:rgba(200,60,140,.5);  --pA:#8f3f7e; --pB:#3a1e52; }
+  .plate.boy     { --p1:rgba(130,170,255,.55); --p2:rgba(80,90,220,.5);   --pA:#3f4fb0; --pB:#1d2260; }
+  .plate.helper  { --p1:rgba(170,155,255,.6);  --p2:rgba(110,80,220,.5);  --pA:#5847b8; --pB:#282064; }
+  .plate.villain { --p1:rgba(255,120,95,.45);  --p2:rgba(170,45,80,.5);   --pA:#6e2a4e; --pB:#2a1030; }
+  /* shine sweep — only on big showcase containers (divs) */
+  .plate.shine { position:relative; overflow:hidden; }
+  .plate.shine::after {
+    content:''; position:absolute; inset:-30%;
+    background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,.16) 50%, transparent 58%);
+    transform:translateX(-80%); animation:plateShine 4.6s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes plateShine { 0%{transform:translateX(-80%)} 55%,100%{transform:translateX(80%)} }
+  /* cropped head inside plated boxes */
+  .avatar3d .crop, .nav-avatar .crop {
+    position:absolute; width:165%; height:165%; left:-32.5%; top:-6.5%;
+    object-fit:cover; pointer-events:none;
+  }
+  .gc-img { position:absolute; left:0; top:5%; width:100%; height:92%; object-fit:contain;
+    animation:heroFloat 4.5s ease-in-out infinite; pointer-events:none; }
+  @keyframes heroFloat { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+
   /* ---------- accessibility ---------- */
   button:focus-visible, .node:focus-visible, [role="button"]:focus-visible, a:focus-visible {
     outline:3px solid #ffd76e; outline-offset:2px;
@@ -785,7 +820,8 @@
     .intro-scene .bubble, .xpbar > div::after, .nav-btn .ic { animation:none !important; transition:none !important; }
     .speaker-npc:not(.fly-away) { animation:none !important; }
     .visual .grp span, .visual .coin, .gotstars .gstar, .rippleFx,
-    #splash img, #splash .t, .fb-ava { animation:none !important; }
+    #splash img, #splash .t, .fb-ava, .gc-img { animation:none !important; }
+    .plate.shine::after { animation:none !important; opacity:0; }
   }
   @keyframes flyFade { to { opacity:0; } }
 </style>
@@ -1644,9 +1680,8 @@ function setChrome(screen){
   stopSpeech();
   const av = document.getElementById('navAv');
   if (av){
-    av.textContent = '';
-    av.className = 'nav-avatar img'+(state.char.g==='f'?' girl':'');
-    av.style.backgroundImage = 'url("'+charImg(state.char.g, rankInfo().idx)+'")';
+    av.className = 'nav-avatar img plate '+(state.char.g==='f'?'girl':'boy');
+    av.innerHTML = '<img class="crop" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">';
   }
   if (screen !== 'map') window.scrollTo(0,0);
 }
@@ -1679,11 +1714,11 @@ function renderHome(){
   const r = rankInfo();
   let html =
     '<div class="hero" id="heroPanel" onclick="heroTap()">'+
-    '<div class="avatar3d'+(state.char.g==='f'?' girl':'')+'" onclick="showCharCard()" '+
+    '<div class="avatar3d plate shine '+(state.char.g==='f'?'girl':'boy')+'" onclick="showCharCard()" '+
       'role="button" tabindex="0" aria-label="'+tr('Карточка героя','Hero card')+'" '+
       'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();showCharCard();}" '+
-      'title="'+tr('Карточка героя','Hero card')+'" style="background-image:url(\''+
-      charImg(state.char.g, r.idx)+'\')"></div>'+
+      'title="'+tr('Карточка героя','Hero card')+'">'+
+      '<img class="crop" src="'+charImg(state.char.g, r.idx)+'" alt=""></div>'+
     '<div class="hero-info">'+
     '<div class="name-row"><h1>'+N()+'</h1>'+
       '<span class="starcount" onclick="devTap()">⭐ '+totalStars()+' '+tr('из','of')+' '+MAX_STARS+'</span></div>'+
@@ -1722,9 +1757,9 @@ function renderHome(){
     html += '<div class="world w'+wi+'" style="background:'+w.tint+'">'+deco+
       '<div class="world-head"><h2>'+w.icon+' '+w.name[LANG()]+(cleared?' ✨':'')+'</h2>';
     if (open){
-      const hImg = '<img src="'+npcImg(wi,'h')+'" alt="" loading="lazy" '+
+      const hImg = '<img class="plate helper" src="'+npcImg(wi,'h')+'" alt="" loading="lazy" '+
         'onerror="this.outerHTML=\'<span class=&quot;npc-fallback&quot;>'+w.cast.h.e+'</span>\'">';
-      const vImg = '<img src="'+npcImg(wi,'v')+'" alt="" loading="lazy" '+
+      const vImg = '<img class="plate villain" src="'+npcImg(wi,'v')+'" alt="" loading="lazy" '+
         'onerror="this.outerHTML=\'<span class=&quot;npc-fallback&quot;>'+w.cast.v.e+'</span>\'">';
       html += '<div class="npc-cards">'+
         '<div class="npc-card h">'+hImg+
@@ -2035,7 +2070,8 @@ function showCharCard(){
     '<div class="gc-inner">'+
     '<div class="gc-top"><span class="gc-class">'+AV()+' '+T()+'</span>'+
       '<span class="gc-num">№ 0'+(r.idx+1)+'</span></div>'+
-    '<div class="gc-art" style="background-image:url(\''+charImg(state.char.g, r.idx)+'\')">'+
+    '<div class="gc-art plate shine '+(state.char.g==='f'?'girl':'boy')+'">'+
+      '<img class="gc-img" src="'+charImg(state.char.g, r.idx)+'" alt="">'+
       '<div class="gc-name">'+N()+'</div></div>'+
     '<div class="gc-rows">'+
     '<div class="gc-row"><span class="lbl">🎖️ '+tr('Ранг','Rank')+'</span><span class="val"><span class="rank-pill">'+r.icon+' '+r.name+'</span></span></div>'+
@@ -2127,7 +2163,7 @@ function finishPractice(){
     (cur.mistakes===0 ? tr('Ни одной ошибки — блестяще! ✨','No mistakes — brilliant! ✨')
                       : tr('Ошибок: '+cur.mistakes+'. В следующий раз получится ещё лучше!',
                            'Mistakes: '+cur.mistakes+'. Next time will be even better!'))+'</p>'+
-    (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
+    (rankUp ? '<div class="unlock-banner"><img class="rankup-img plate '+(state.char.g==='f'?'girl':'boy')+'" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
       tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
          '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
       '<br><small>'+pick(QUOTES[LANG()])+'</small></div>' : '')+
@@ -2200,9 +2236,9 @@ function renderCharScreen(){
     '<div class="char-title">'+tr('Выбери героя ✨','Choose your hero ✨')+'</div>'+
     '<div class="char-cards">'+
     '<button class="char-card'+(state.char.g==='f'?' sel':'')+'" onclick="setGender(\'f\')">'+
-      '<img class="char-full" src="'+charImg('f', rankInfo().idx)+'" alt="">'+tr('Астрокошка','Astrocat')+'</button>'+
+      '<img class="char-full plate girl" src="'+charImg('f', rankInfo().idx)+'" alt="">'+tr('Астрокошка','Astrocat')+'</button>'+
     '<button class="char-card'+(state.char.g==='m'?' sel':'')+'" onclick="setGender(\'m\')">'+
-      '<img class="char-full" src="'+charImg('m', rankInfo().idx)+'" alt="">'+tr('Космокот','Cosmocat')+'</button>'+
+      '<img class="char-full plate boy" src="'+charImg('m', rankInfo().idx)+'" alt="">'+tr('Космокот','Cosmocat')+'</button>'+
     '</div>'+
     '<div class="char-sub">'+tr('Как зовут твоего героя?','What is your hero’s name?')+'</div>'+
     '<input class="name-input" id="nameInp" maxlength="12" value="'+N()+'">'+
@@ -2359,9 +2395,9 @@ function renderDialogScene(wi, li, idx, mode){
   const last = idx === lines.length - 1;
   const dots = lines.map((_,i)=> '<i'+(i===idx?' class="on"':'')+'></i>').join('');
   const speaker = line[0]==='p'
-    ? '<img class="speaker-img" id="dlgSpeaker" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
+    ? '<img class="speaker-img plate '+(state.char.g==='f'?'girl':'boy')+'" id="dlgSpeaker" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'
     : '<span class="speaker-wrap">'+
-      '<img class="speaker-npc'+(evil?'':' talking')+'" id="dlgSpeaker" src="'+npcImg(wi, line[0])+'" alt="" '+
+      '<img class="speaker-npc plate '+(evil?'villain':'helper talking')+'" id="dlgSpeaker" src="'+npcImg(wi, line[0])+'" alt="" '+
       'onerror="this.parentNode.innerHTML=\'<span class=&quot;speaker'+(evil?'':' talking')+'&quot; id=&quot;dlgSpeaker&quot;>'+whoE+'</span>\'">'+
       '</span>';
   const nextClick = last
@@ -2405,7 +2441,7 @@ function outroDone(wi){
     '<div class="intro-scene">'+
     '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+' ✨</div>'+
     '<span class="speaker-wrap">'+
-    '<img class="speaker-npc fly-away" src="'+npcImg(wi,'v')+'" alt="" '+
+    '<img class="speaker-npc plate villain fly-away" src="'+npcImg(wi,'v')+'" alt="" '+
       'onerror="this.parentNode.innerHTML=\'<span class=&quot;speaker fly-away&quot;>'+W.cast.v.e+'</span>\'">'+
     '</span>'+
     '<div class="char-sub" style="font-size:18px;margin-top:20px">'+
@@ -2479,7 +2515,7 @@ function renderTask(){
 function reactImg(kind, mood){
   const t = cur && cur.tasks && cur.tasks[cur.idx];
   const wi = (t && t._wi !== undefined) ? t._wi : (cur && cur.wi !== undefined ? cur.wi : 0);
-  return '<img class="fb-ava '+mood+'" src="'+npcImg(wi, kind)+'" alt="" onerror="this.remove()">';
+  return '<img class="fb-ava plate '+(kind==='h'?'helper':'villain')+' '+mood+'" src="'+npcImg(wi, kind)+'" alt="" onerror="this.remove()">';
 }
 
 function tryChoice(i){
@@ -2569,7 +2605,7 @@ function finishLevel(){
     '<div class="gotstars">'+starsHtml+'</div>'+
     '<p><b id="xpTick" style="color:#1faf62">+0</b> '+tr('XP бонус за уровень!','XP level bonus!')+'<br>'+
       T()+' '+N()+' — '+tr('молодец!','well done!')+' 🚀</p>'+
-    (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
+    (rankUp ? '<div class="unlock-banner"><img class="rankup-img plate '+(state.char.g==='f'?'girl':'boy')+'" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
       tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
          '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
       '<br><small>'+pick(QUOTES[LANG()])+'</small></div>' : '')+
