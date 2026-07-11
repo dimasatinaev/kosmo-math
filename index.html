@@ -346,9 +346,16 @@
   .ach-card { cursor:pointer; font-family:inherit; color:inherit; transition:transform .12s; }
   .ach-card:active { transform:scale(.95); }
   /* achievement modal */
-  .ach-big { width:150px; height:150px; display:block; margin:0 auto; object-fit:contain;
-    filter:drop-shadow(0 12px 26px rgba(255,201,77,.35)); animation:starPop .5s var(--ease-enter) both; }
-  .ach-big.locked { filter:grayscale(.9) drop-shadow(0 10px 20px rgba(0,0,0,.4)); opacity:.75; }
+  /* glow as a separate radial layer — iOS clips img drop-shadows to a square */
+  .ach-big-wrap { position:relative; width:150px; height:150px; margin:0 auto; }
+  .ach-big-wrap::before {
+    content:''; position:absolute; inset:-30%; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,201,77,.42), transparent 64%);
+  }
+  .ach-big-wrap.locked::before { background:radial-gradient(circle, rgba(255,255,255,.14), transparent 60%); }
+  .ach-big { position:relative; width:150px; height:150px; display:block; object-fit:contain;
+    animation:starPop .5s var(--ease-enter) both; }
+  .ach-big.locked { filter:grayscale(.9); opacity:.75; }
   .ach-big-fallback { font-size:84px; line-height:150px; text-align:center; }
   .ach-status { margin-top:12px; font-weight:1000; font-size:16px; color:#5fe19a; }
   .ach-status.dim { color:rgba(255,255,255,.65); }
@@ -2207,8 +2214,10 @@ function showAchCard(i){
   el.addEventListener('click', e => { if (e.target === el) closeAchCard(); });
   el.innerHTML =
     '<div class="streak-panel">'+
+    '<div class="ach-big-wrap'+(ok?'':' locked')+'">'+
     '<img class="ach-big'+(ok?'':' locked')+'" src="achievements/web/ach_'+(i+1)+'.png" alt="" '+
       'onerror="this.outerHTML=\'<div class=&quot;ach-big-fallback&quot;>'+a.i+'</div>\'">'+
+    '</div>'+
     '<div class="streak-cap" style="margin-top:8px">'+a[LANG()][0]+'</div>'+
     '<div class="streak-desc" style="margin-top:6px">'+a[LANG()][1]+'</div>'+
     (ok
