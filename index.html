@@ -13,6 +13,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;1000&family=Playpen+Sans:wght@400;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-startup-image" href="splash/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1668x2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1620x2160.png" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>Космоматематика 🚀</title>
 <style>
@@ -660,6 +666,57 @@
     .visual{ font-size:28px; }
   }
 
+  /* ---------- boot splash ---------- */
+  #splash {
+    position:fixed; inset:0; z-index:200; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px;
+    background:linear-gradient(180deg,#0d0b30,#3d2380);
+    transition:opacity .4s;
+  }
+  #splash.bye { opacity:0; pointer-events:none; }
+  #splash img { width:112px; height:112px; border-radius:26px;
+    box-shadow:0 20px 50px rgba(0,0,0,.5); animation:popIn .5s var(--ease-enter) both; }
+  #splash .t { font-weight:1000; font-size:21px; letter-spacing:.4px;
+    animation:popIn .5s var(--ease-enter) .12s both; }
+
+  /* ---------- touch ripple ---------- */
+  .rippleFx { position:fixed; width:16px; height:16px; border-radius:50%; z-index:150;
+    background:rgba(255,255,255,.35); pointer-events:none;
+    transform:translate(-50%,-50%); animation:rippleA .45s ease-out forwards; }
+  @keyframes rippleA { to { transform:translate(-50%,-50%) scale(6); opacity:0; } }
+
+  /* ---------- staggered items in task visuals ---------- */
+  .visual .grp span, .visual .coin { display:inline-block; animation:itemIn .28s var(--ease-enter) both; }
+  @keyframes itemIn { from { opacity:0; transform:scale(.3); } }
+
+  /* ---------- level-complete celebration ---------- */
+  .gotstars .gstar { display:inline-block; animation:starPop .55s var(--ease-enter) both; }
+  .gotstars .gstar.dim { filter:grayscale(1); opacity:.35; }
+  @keyframes starPop {
+    0% { opacity:0; transform:scale(0) rotate(-40deg); }
+    60% { transform:scale(1.35) rotate(8deg); }
+    100% { opacity:1; transform:scale(1) rotate(0); }
+  }
+
+  /* ---------- per-world node palettes (done=gold, locked=gray win below) ---------- */
+  .w0 .node { background:radial-gradient(circle at 30% 25%,#7ede97,#2fae5c); box-shadow:0 8px 0 #1e7f41, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.3); }
+  .w1 .node { background:radial-gradient(circle at 30% 25%,#a8b4d4,#66789f); box-shadow:0 8px 0 #4a5875, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.3); }
+  .w2 .node { background:radial-gradient(circle at 30% 25%,#f5b26b,#d67b2f); box-shadow:0 8px 0 #a05a1e, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.3); }
+  .w3 .node { background:radial-gradient(circle at 30% 25%,#6cc0ee,#2f86c8); box-shadow:0 8px 0 #226397, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.3); }
+  .w4 .node { background:radial-gradient(circle at 30% 25%,#cf95e6,#9a4fc7); box-shadow:0 8px 0 #713695, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.3); }
+  .w5 .node { background:radial-gradient(circle at 30% 25%,#8b95f0,#525ecc); box-shadow:0 8px 0 #3b449c, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.3); }
+  .world .node.done { background:radial-gradient(circle at 30% 25%,#ffd76e,#ff9f40);
+    box-shadow:0 8px 0 #d97b1e, 0 14px 28px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.35); }
+  .world .node.locked { background:radial-gradient(circle at 30% 25%,#9a9ab0,#5c5c74);
+    box-shadow:0 8px 0 #44445a; }
+  .world .node:active { transform:translateY(3px) scale(.98); }
+
+  /* lucide icon buttons */
+  .btn-close, .gc-close, .say-btn { display:flex; align-items:center; justify-content:center; }
+  .btn-close svg, .gc-close svg { width:18px; height:18px; }
+  .say-btn { color:#5a34c9; }
+  .say-btn svg { width:20px; height:20px; }
+
   /* ---------- accessibility ---------- */
   button:focus-visible, .node:focus-visible, [role="button"]:focus-visible, a:focus-visible {
     outline:3px solid #ffd76e; outline-offset:2px;
@@ -678,12 +735,15 @@
     #app.screen-in, .intro-scene .speaker, .intro-scene .speaker-img,
     .intro-scene .bubble, .xpbar > div::after, .nav-btn .ic { animation:none !important; transition:none !important; }
     .speaker-npc:not(.fly-away) { animation:none !important; }
+    .visual .grp span, .visual .coin, .gotstars .gstar, .rippleFx,
+    #splash img, #splash .t { animation:none !important; }
   }
   @keyframes flyFade { to { opacity:0; } }
 </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="splash"><img src="icons/icon-192.png" alt=""><div class="t">Космоматематика</div></div>
 <script>
 'use strict';
 
@@ -821,9 +881,19 @@ const pick = arr => arr[rnd(0,arr.length-1)];
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
 function plural(n, f){ n=Math.abs(n)%100; const d=n%10;
   if(n>10&&n<20) return f[2]; if(d>1&&d<5) return f[1]; if(d===1) return f[0]; return f[2]; }
-function em(e,n,cls){ let s=''; for(let i=0;i<n;i++) s+='<span class="'+(cls||'')+'">'+e+'</span> '; return s; }
+function em(e,n,cls){
+  let s='';
+  for(let i=0;i<n;i++)
+    s+='<span class="'+(cls||'')+'" style="animation-delay:'+(i*35)+'ms">'+e+'</span> ';
+  return s;
+}
 function emRows(e,n){ // rows of 5 so counting big numbers is easier
-  let s=''; for(let i=0;i<n;i++){ s+=e+' '; if((i+1)%5===0 && i+1<n) s+='<br>'; } return s;
+  let s='';
+  for(let i=0;i<n;i++){
+    s+='<span style="animation-delay:'+(i*35)+'ms">'+e+'</span> ';
+    if((i+1)%5===0 && i+1<n) s+='<br>';
+  }
+  return s;
 }
 
 const ITEMS = [
@@ -1055,14 +1125,14 @@ function genShapePattern(pl){
   const p = shapes.slice(0, pick(pl||[2,3]));
   const len = 6;
   let seq = '';
-  for (let i=0;i<len;i++) seq += '<span>'+p[i%p.length]+'</span>';
+  for (let i=0;i<len;i++) seq += '<span style="animation-delay:'+(i*45)+'ms">'+p[i%p.length]+'</span>';
   const ans = p[len%p.length];
   const opts = shuffle(p.concat(shapes[p.length]).slice(0,4));
   return {
     prompt:tr('Робот-художник рисует узор. Какая фигура будет следующей?',
               'The robot artist is drawing a pattern. Which shape comes next?'),
     // single non-wrapping row so the «?» sits exactly where the next shape goes
-    visual:'<div class="grp seq-row">'+seq+'<span class="gap">?</span></div>',
+    visual:'<div class="grp seq-row">'+seq+'<span class="gap" style="animation-delay:'+(len*45)+'ms">?</span></div>',
     kind:'choice', options:opts, answer:ans
   };
 }
@@ -1133,7 +1203,7 @@ function genMoney(c, cnts){
   return {
     prompt:tr(c.h.e+' '+hn(c)+' даёт монетки на космо-мороженое. Сколько всего монеток получилось?',
               c.h.e+' '+hn(c)+' gives you coins for space ice cream. How much is it in total?'),
-    visual:coins.map(d=>'<span class="coin">'+d+'</span>').join(''),
+    visual:coins.map((d,i)=>'<span class="coin" style="animation-delay:'+(i*90)+'ms">'+d+'</span>').join(''),
     kind:'input', answer:String(sum)
   };
 }
@@ -1489,9 +1559,10 @@ const app = document.getElementById('app');
 const ICONS = {
   map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg>',
   practice:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
-  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 5H5a3 3 0 0 0 3 4.5"/><path d="M16 5h3a3 3 0 0 1-3 4.5"/><path d="M12 13v4"/><path d="M8 21h8"/><path d="M10 21c0-2 .9-3 2-3s2 1 2 3"/></svg>',
-  soundOn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>',
-  soundOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m16 9 5 5"/><path d="m21 9-5 5"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+  soundOn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+  soundOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
 };
 document.body.insertAdjacentHTML('beforeend',
   '<button class="sound-fab" id="soundFab" aria-label="sound on/off" onclick="toggleSound()">'+ICONS.soundOn+'</button>'+
@@ -1597,7 +1668,7 @@ function renderHome(){
     const open = worldOpen(wi);
     const deco = w.deco.map((d,i)=>'<span class="deco" style="'+DECO_POS[i%4]+'">'+d+'</span>').join('');
     const cleared = !!state.outros[wi];
-    html += '<div class="world" style="background:'+w.tint+'">'+deco+
+    html += '<div class="world w'+wi+'" style="background:'+w.tint+'">'+deco+
       '<div class="world-head"><h2>'+w.icon+' '+w.name[LANG()]+(cleared?' ✨':'')+'</h2>';
     if (open){
       const hImg = '<img src="'+npcImg(wi,'h')+'" alt="" loading="lazy" '+
@@ -1871,7 +1942,7 @@ function showCharCard(){
   el.addEventListener('click', e => { if (e.target === el) closeCharCard(); });
   el.innerHTML =
     '<div class="game-card'+(state.char.g==='f'?' girl':'')+'">'+
-    '<button class="gc-close" aria-label="close" onclick="closeCharCard()">✕</button>'+
+    '<button class="gc-close" aria-label="close" onclick="closeCharCard()">'+ICONS.x+'</button>'+
     '<div class="gc-inner">'+
     '<div class="gc-top"><span class="gc-class">'+AV()+' '+T()+'</span>'+
       '<span class="gc-num">№ 0'+(r.idx+1)+'</span></div>'+
@@ -1990,7 +2061,7 @@ function renderAchievements(){
 function renderCharScreen(){
   setChrome('profile');
   app.innerHTML =
-    '<div class="topbar"><button class="btn-close" aria-label="close" onclick="renderHome()">✕</button><div style="flex:1"></div></div>'+
+    '<div class="topbar"><button class="btn-close" aria-label="close" onclick="renderHome()">'+ICONS.x+'</button><div style="flex:1"></div></div>'+
     '<div class="char-title">'+tr('Выбери героя ✨','Choose your hero ✨')+'</div>'+
     '<div class="char-cards">'+
     '<button class="char-card'+(state.char.g==='f'?' sel':'')+'" onclick="setGender(\'f\')">'+
@@ -2166,7 +2237,7 @@ function renderDialogScene(wi, li, idx, mode){
     : tr('Дальше ➜','Next ➜');
   app.innerHTML =
     (mode==='intro'
-      ? '<div class="topbar"><button class="btn-close" aria-label="close" onclick="finishReveal();renderHome()">✕</button><div style="flex:1"></div></div>'
+      ? '<div class="topbar"><button class="btn-close" aria-label="close" onclick="finishReveal();renderHome()">'+ICONS.x+'</button><div style="flex:1"></div></div>'
       : '')+
     '<div class="evilfx'+(evil?' on':'')+'"></div>'+
     '<div class="intro-scene'+(evil?' evil revealing':'')+'" id="dlgScene">'+
@@ -2252,10 +2323,10 @@ function renderTask(){
       '</div>';
   }
   app.innerHTML =
-    '<div class="topbar"><button class="btn-close" aria-label="close" onclick="renderHome()">✕</button>'+
+    '<div class="topbar"><button class="btn-close" aria-label="close" onclick="renderHome()">'+ICONS.x+'</button>'+
     '<div class="progress"><div style="width:'+(100*cur.idx/TASKS_PER_LEVEL)+'%"></div></div></div>'+
     '<div class="card" id="card">'+
-    (ttsOk() ? '<button class="say-btn" onclick="sayTask()" aria-label="'+tr('Прочитать вслух','Read aloud')+'" title="'+tr('Прочитать вслух','Read aloud')+'">🔊</button>' : '')+
+    (ttsOk() ? '<button class="say-btn" onclick="sayTask()" aria-label="'+tr('Прочитать вслух','Read aloud')+'" title="'+tr('Прочитать вслух','Read aloud')+'">'+ICONS.soundOn+'</button>' : '')+
     '<div class="prompt">'+t.prompt+'</div>'+
     '<div class="visual">'+t.visual+'</div>'+
     answerArea+
@@ -2337,13 +2408,15 @@ function finishLevel(){
   sndWin();
   confetti(); setTimeout(confetti, 500);
   setChrome('task');
+  const starsHtml = Array.from({length:3}, (_,i)=>
+    '<span class="gstar'+(i<stars?'':' dim')+'" style="animation-delay:'+(0.15+i*0.22)+'s">⭐</span>').join('');
   app.innerHTML =
     '<div class="card complete">'+
     '<div class="big">🏆</div>'+
     '<h2 style="color:#5a34c9">'+tr('Уровень пройден!','Level complete!')+'</h2>'+
-    '<div class="gotstars">'+'⭐'.repeat(stars)+'<span style="filter:grayscale(1);opacity:.4">'+'⭐'.repeat(3-stars)+'</span></div>'+
-    '<p>'+tr('+'+bonus+' XP бонус за уровень!<br>'+T()+' '+N()+' — молодец! ',
-             '+'+bonus+' XP level bonus!<br>'+T()+' '+N()+' — well done! ')+AV()+'🚀</p>'+
+    '<div class="gotstars">'+starsHtml+'</div>'+
+    '<p><b id="xpTick" style="color:#1faf62">+0</b> '+tr('XP бонус за уровень!','XP level bonus!')+'<br>'+
+      T()+' '+N()+' — '+tr('молодец!','well done!')+' '+AV()+'🚀</p>'+
     (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
       tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
          '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
@@ -2364,6 +2437,25 @@ function finishLevel(){
       ? '<button class="btn-next" onclick="renderOutro('+cur.wi+',0)">'+tr('Дальше ✨','Continue ✨')+'</button>'
       : '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>')+
     '</div>';
+  celebrate(stars, bonus);
+}
+
+/* star chimes + xp count-up on the victory screen */
+function celebrate(stars, bonus){
+  if (state.sound && !reducedMotion())
+    for (let i=0;i<stars;i++)
+      setTimeout(()=> beep(660+i*180, .18, 0, 'triangle', .12), 400+i*220);
+  const el = document.getElementById('xpTick');
+  if (!el) return;
+  if (reducedMotion() || typeof requestAnimationFrame !== 'function'){
+    el.textContent = '+'+bonus; return;
+  }
+  const t0 = Date.now(), dur = 700;
+  setTimeout(function tick(){
+    const t = Math.min(1, (Date.now()-t0)/dur);
+    el.textContent = '+'+Math.round(bonus*t);
+    if (t < 1) requestAnimationFrame(tick);
+  }, 250);
 }
 
 syncDocLang();
@@ -2372,6 +2464,23 @@ renderHome();
 /* preload character art so avatars and rank-ups appear instantly */
 ['f','m'].forEach(g=> RANK_FILES.forEach((_,i)=>{ const im = new Image(); im.src = charImg(g,i); }));
 WORLDS.forEach((_,wi)=> ['h','v'].forEach(k=>{ const im = new Image(); im.src = npcImg(wi,k); }));
+
+/* touch ripple */
+document.addEventListener('pointerdown', e => {
+  if (reducedMotion()) return;
+  const r = document.createElement('span');
+  r.className = 'rippleFx';
+  r.style.left = e.clientX+'px';
+  r.style.top = e.clientY+'px';
+  document.body.appendChild(r);
+  setTimeout(()=> r.remove(), 500);
+}, { passive:true });
+
+/* hide the boot splash once everything is on screen */
+setTimeout(()=>{
+  const s = document.getElementById('splash');
+  if (s){ s.classList.add('bye'); setTimeout(()=> s.remove(), 450); }
+}, 750);
 
 /* ask the browser to keep our storage even under storage pressure */
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
