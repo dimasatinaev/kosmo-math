@@ -329,11 +329,23 @@
   .topic.sel { border-color:#ffd76e; background:rgba(255,215,110,.18);
     box-shadow:0 0 14px rgba(255,215,110,.35); }
   .topic .w { opacity:.7; font-size:12px; display:block; }
-  .ach {
-    background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-    border:1px dashed rgba(255,255,255,.25); border-radius:18px;
-    padding:14px 16px; margin:10px auto; max-width:360px; font-size:15px; opacity:.8; text-align:left;
+  .ach-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; }
+  .ach-card {
+    position:relative; text-align:center; padding:14px 8px 12px; border-radius:20px;
+    background:linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.2);
+    box-shadow:0 10px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.12);
   }
+  .ach-card img, .ach-fallback {
+    width:64px; height:64px; display:block; margin:0 auto 8px;
+    border-radius:50%; object-fit:cover;
+  }
+  .ach-fallback { font-size:38px; line-height:64px; text-align:center;
+    background:rgba(255,255,255,.12); }
+  .ach-card .an { font-size:12.5px; font-weight:1000; line-height:1.2; }
+  .ach-card .ad { font-size:10.5px; opacity:.7; line-height:1.3; margin-top:3px; }
+  .ach-card.locked { filter:grayscale(.85); opacity:.55; }
+  .ach-card.locked::after { content:'🔒'; position:absolute; top:8px; right:9px; font-size:14px; }
   .xpbar { height:13px; background:rgba(0,0,0,.4); border-radius:8px; overflow:hidden;
     border:1px solid rgba(255,255,255,.10); box-shadow:inset 0 2px 4px rgba(0,0,0,.4); }
   .xpbar > div { height:100%; background:linear-gradient(90deg,#6ee7a0,#2fd573); border-radius:8px;
@@ -633,6 +645,31 @@
     box-shadow:0 4px 0 #f5b8b8, inset 0 1px 0 #ffffff; }
 
   .feedback { text-align:center; font-size:20px; font-weight:bold; min-height:30px; margin-top:16px; }
+  .feedback .fb-ava { width:44px; height:44px; border-radius:50%; object-fit:cover;
+    vertical-align:middle; margin-right:8px; border:2px solid #fff;
+    box-shadow:0 4px 10px rgba(0,0,0,.22); background:#f4f2f7; }
+  .fb-ava.happy { animation:reactHappy .8s var(--ease-enter) both; }
+  .fb-ava.angry { animation:reactAngry .7s both; }
+  @keyframes reactHappy {
+    0% { opacity:0; transform:translateY(16px) scale(.4); }
+    35% { opacity:1; transform:translateY(-6px) scale(1.12); }
+    60% { transform:translateY(0) scale(1); }
+    100% { opacity:1; }
+  }
+  @keyframes reactAngry {
+    0% { opacity:0; transform:scale(.4); }
+    25% { opacity:1; transform:scale(1.05) rotate(-7deg); }
+    45% { transform:rotate(7deg); }
+    65% { transform:rotate(-4deg); }
+    100% { opacity:1; transform:rotate(0); }
+  }
+  /* speaker icon in dialog name */
+  .bubble .who .who-spk { display:inline-block; margin-left:6px; opacity:.55; }
+  .bubble .who .who-spk svg { width:14px; height:14px; vertical-align:-2px; }
+  /* hero mini avatar on the win screen */
+  .win-ava { width:36px; height:36px; border-radius:12px; object-fit:cover;
+    object-position:50% 12%; vertical-align:middle; margin:0 3px; background:#fff;
+    box-shadow:0 3px 8px rgba(90,52,201,.25); }
   .feedback.good { color:#1faf62; }
   .feedback.bad  { color:#e05555; }
 
@@ -736,7 +773,7 @@
     .intro-scene .bubble, .xpbar > div::after, .nav-btn .ic { animation:none !important; transition:none !important; }
     .speaker-npc:not(.fly-away) { animation:none !important; }
     .visual .grp span, .visual .coin, .gotstars .gstar, .rippleFx,
-    #splash img, #splash .t { animation:none !important; }
+    #splash img, #splash .t, .fb-ava { animation:none !important; }
   }
   @keyframes flyFade { to { opacity:0; } }
 </style>
@@ -768,6 +805,8 @@ if (!state.intros) state.intros = {};
 if (!state.outros) state.outros = {};
 if (!state.lang) state.lang = 'ru';
 if (state.voice === undefined) state.voice = true;
+if (!state.stats) state.stats = { tasks:0, perfect:0 };
+if (!state.ach) state.ach = {};
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
 
 /* i18n helpers */
@@ -1718,6 +1757,34 @@ function renderHome(){
   updateHeroMini(window.scrollY || 0);
 }
 
+/* ---------- achievements ---------- */
+const ACH = [
+  { i:'👣', ru:['Первый шаг','Реши свою первую задачу'],        en:['First Step','Solve your first problem'],        t:()=> (state.stats.tasks||0) >= 1 },
+  { i:'🧮', ru:['Задачник','Реши 100 задач'],                   en:['Problem Master','Solve 100 problems'],           t:()=> (state.stats.tasks||0) >= 100 },
+  { i:'🎯', ru:['Без промаха','Пройди уровень без ошибок'],     en:['Flawless','Finish a level with no mistakes'],    t:()=> (state.stats.perfect||0) >= 1 },
+  { i:'🏹', ru:['Снайпер','10 уровней без ошибок'],             en:['Sniper','10 flawless levels'],                   t:()=> (state.stats.perfect||0) >= 10 },
+  { i:'🌙', ru:['Покоритель Луны','Пройди все уровни Луны'],    en:['Moon Conqueror','Finish every Moon level'],      t:()=> WORLDS[1].levels.every((_,li)=> lvlStars(1,li) > 0) },
+  { i:'🏴‍☠️', ru:['Гроза пиратов','Победи пирата Крыса'],        en:['Pirate’s Bane','Defeat Pirate Kryss'],           t:()=> lvlStars(2, WORLDS[2].levels.length-1) > 0 },
+  { i:'🔥', ru:['Неделя в космосе','Серия 7 дней подряд'],      en:['Space Week','A 7-day streak'],                   t:()=> ((state.streak&&state.streak.best)||0) >= 7 },
+  { i:'✨', ru:['Коллекционер','Собери 50 звёзд'],              en:['Collector','Collect 50 stars'],                  t:()=> totalStars() >= 50 },
+  { i:'💫', ru:['Суперзвезда','Собери все 150 звёзд'],          en:['Superstar','Collect all 150 stars'],             t:()=> totalStars() >= MAX_STARS },
+  { i:'🌟', ru:['Чистое небо','Прогони злодея из целого мира'], en:['Clear Skies','Chase a villain out of a world'],  t:()=> Object.keys(state.outros||{}).length >= 1 },
+  { i:'⭐', ru:['Капитан','Достигни ранга Капитан'],            en:['Captain','Reach the Captain rank'],              t:()=> state.xp >= 2400 },
+  { i:'👑', ru:['Адмирал Галактики','Достигни высшего ранга'],  en:['Galaxy Admiral','Reach the highest rank'],       t:()=> state.xp >= 3400 },
+];
+function checkAch(){          // → newly unlocked achievement defs
+  if (!state.ach) state.ach = {};
+  const fresh = [];
+  ACH.forEach((a,i)=>{
+    const id = 'a'+(i+1);
+    if (!state.ach[id] && a.t()){ state.ach[id] = true; fresh.push(a); }
+  });
+  if (fresh.length) save();
+  return fresh;
+}
+const achBanners = list => list.map(a=>
+  '<div class="unlock-banner">🏅 '+tr('Достижение','Achievement')+': <b>'+a[LANG()][0]+'</b>!</div>').join('');
+
 /* ---------- streaks & daily missions ---------- */
 function todayStr(){
   const d = new Date();
@@ -2010,7 +2077,9 @@ function startPracticeSession(){
   const tasks = [];
   for (let i=0;i<TASKS_PER_LEVEL;i++){
     const p = pick(practicePool);
-    tasks.push(WORLDS[p.wi].levels[p.li].gen(WORLDS[p.wi].cast));
+    const t = WORLDS[p.wi].levels[p.li].gen(WORLDS[p.wi].cast);
+    t._wi = p.wi;
+    tasks.push(t);
   }
   cur = { practice:true, tasks, idx:0, mistakes:0, firstTry:true, input:'', rankBefore:rankInfo().name };
   renderTask();
@@ -2022,6 +2091,7 @@ function finishPractice(){
   bumpDaily('practice');
   updateStreak();
   save();
+  const newAch = checkAch();
   const rankNow = rankInfo().name;
   const rankUp = rankNow !== cur.rankBefore;
   sndWin();
@@ -2039,6 +2109,7 @@ function finishPractice(){
       tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
          '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
       '<br><small>'+pick(QUOTES[LANG()])+'</small></div>' : '')+
+    achBanners(newAch)+
     '<button class="btn-next" onclick="startPracticeSession()">'+tr('Ещё раз 🔁','One more 🔁')+'</button>'+
     '<button class="btn-next" onclick="renderPractice()" style="background:linear-gradient(180deg,#8f6bff,#6a3fe0);box-shadow:0 6px 0 #4a26a8">'+tr('К темам 📚','Topics 📚')+'</button>'+
     '</div>';
@@ -2047,14 +2118,23 @@ function finishPractice(){
 /* ---------- achievements (future) ---------- */
 function renderAchievements(){
   setChrome('achieve');
+  checkAch();   // pick up anything earned outside the normal flow
+  const got = state.ach || {};
+  const n = Object.keys(got).length;
   app.innerHTML =
     '<div class="char-title">🏆 '+tr('Достижения','Achievements')+'</div>'+
-    '<div class="char-sub">'+tr('Скоро! Здесь появятся награды за твои подвиги.','Coming soon! Awards for your feats will appear here.')+'</div>'+
-    '<div class="ach">🔒 <b>'+tr('Первый шаг','First Step')+'</b><br><small>'+tr('Реши свои первые 10 задач','Solve your first 10 problems')+'</small></div>'+
-    '<div class="ach">🔒 <b>'+tr('Без промаха','Flawless')+'</b><br><small>'+tr('Пройди уровень без единой ошибки','Finish a level without a single mistake')+'</small></div>'+
-    '<div class="ach">🔒 <b>'+tr('Покоритель Луны','Moon Conqueror')+'</b><br><small>'+tr('Открой все уровни Луны','Unlock all Moon levels')+'</small></div>'+
-    '<div class="ach">🔒 <b>'+tr('Гроза пиратов','Pirate’s Bane')+'</b><br><small>'+tr('Победи пирата Крыса на босс-уровне','Beat Pirate Kryss on the boss level')+'</small></div>'+
-    '<div class="ach">🔒 <b>'+tr('Адмирал Галактики','Galaxy Admiral')+'</b><br><small>'+tr('Достигни высшего ранга','Reach the highest rank')+'</small></div>';
+    '<div class="char-sub">'+n+' '+tr('из','of')+' '+ACH.length+'</div>'+
+    '<div class="ach-grid">'+
+    ACH.map((a,i)=>{
+      const ok = !!got['a'+(i+1)];
+      return '<div class="ach-card'+(ok?'':' locked')+'">'+
+        '<img src="achievements/web/ach_'+(i+1)+'.png" alt="" loading="lazy" '+
+          'onerror="this.outerHTML=\'<span class=&quot;ach-fallback&quot;>'+a.i+'</span>\'">'+
+        '<div class="an">'+a[LANG()][0]+'</div>'+
+        '<div class="ad">'+a[LANG()][1]+'</div>'+
+        '</div>';
+    }).join('')+
+    '</div>';
 }
 
 /* ---------- character screen ---------- */
@@ -2244,7 +2324,8 @@ function renderDialogScene(wi, li, idx, mode){
     '<div class="intro-world">'+W.icon+' '+W.name[LANG()]+(mode==='outro'?' ✨':'')+'</div>'+
     speaker+
     '<div class="bubble'+(evil?' villain':'')+'" onclick="bubbleTap()">'+
-      '<span class="who" id="dlgName">'+whoName+(ttsOk()?' 🔊':'')+'</span>'+
+      '<span class="who" id="dlgName">'+whoName+
+        (ttsOk()?'<span class="who-spk">'+ICONS.soundOn+'</span>':'')+'</span>'+
       '<span class="dlg-text" id="dlgText"></span></div>'+
     '<button class="btn-next" onclick="finishReveal();'+nextClick+'">'+nextLabel+'</button>'+
     '<div class="intro-dots">'+dots+'</div>'+
@@ -2292,7 +2373,11 @@ function startLevel(wi, li){
 function beginLevel(wi, li){
   const W = WORLDS[wi], L = W.levels[li];
   const tasks = [];
-  for (let i=0;i<TASKS_PER_LEVEL;i++) tasks.push(L.gen(W.cast));
+  for (let i=0;i<TASKS_PER_LEVEL;i++){
+    const t = L.gen(W.cast);
+    t._wi = wi;
+    tasks.push(t);
+  }
   if (L.boss){
     const v = W.cast.v;
     tasks[0].prompt = '<span class="villain">'+v.e+' <b>'+vn(W.cast)+'</b> '+
@@ -2335,6 +2420,13 @@ function renderTask(){
     '</div>';
 }
 
+/* NPC reaction portrait inside the feedback line */
+function reactImg(kind, mood){
+  const t = cur && cur.tasks && cur.tasks[cur.idx];
+  const wi = (t && t._wi !== undefined) ? t._wi : (cur && cur.wi !== undefined ? cur.wi : 0);
+  return '<img class="fb-ava '+mood+'" src="'+npcImg(wi, kind)+'" alt="" onerror="this.remove()">';
+}
+
 function tryChoice(i){
   const t = cur.tasks[cur.idx];
   const btn = document.getElementById('opt'+i);
@@ -2360,12 +2452,14 @@ function correct(btn){
   document.querySelectorAll('.opt,.key').forEach(b=>b.style.pointerEvents='none');
   const gained = cur.firstTry ? 10 : 5;
   state.xp += gained;
+  state.stats.tasks = (state.stats.tasks||0) + 1;
   bumpDaily('tasks');
   if (cur.firstTry) bumpDaily('firstTry');
   save();
   sndCorrect();
   const fb = document.getElementById('fb');
-  fb.className = 'feedback good'; fb.textContent = pick(PRAISE[LANG()])+' +'+gained+' XP';
+  fb.className = 'feedback good';
+  fb.innerHTML = reactImg('h','happy') + pick(PRAISE[LANG()])+' +'+gained+' XP';
   confetti();
   document.getElementById('nextArea').innerHTML =
     '<button class="btn-next" onclick="nextTask()">'+
@@ -2379,7 +2473,8 @@ function wrong(btn){
   const card = document.getElementById('card');
   card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
   const fb = document.getElementById('fb');
-  fb.className = 'feedback bad'; fb.textContent = pick(RETRY[LANG()]);
+  fb.className = 'feedback bad';
+  fb.innerHTML = reactImg('v','angry') + pick(RETRY[LANG()]);
   const disp = document.getElementById('disp');
   if (disp) disp.textContent = ' ';
 }
@@ -2399,7 +2494,9 @@ function finishLevel(){
   state.levelStars[sKey(cur.wi,cur.li)] = Math.max(lvlStars(cur.wi,cur.li), stars);
   bumpDaily('levels');
   const streakNew = updateStreak();
+  if (cur.mistakes === 0) state.stats.perfect = (state.stats.perfect||0) + 1;
   save();
+  const newAch = checkAch();
   const newWorld = openWorldsCount() > worldsBefore
     ? WORLDS[openWorldsCount()-1] : null;
   const clearedNow = worldCleared(cur.wi) && !state.outros[cur.wi];
@@ -2416,7 +2513,8 @@ function finishLevel(){
     '<h2 style="color:#5a34c9">'+tr('Уровень пройден!','Level complete!')+'</h2>'+
     '<div class="gotstars">'+starsHtml+'</div>'+
     '<p><b id="xpTick" style="color:#1faf62">+0</b> '+tr('XP бонус за уровень!','XP level bonus!')+'<br>'+
-      T()+' '+N()+' — '+tr('молодец!','well done!')+' '+AV()+'🚀</p>'+
+      T()+' '+N()+' — '+tr('молодец!','well done!')+
+      ' <img class="win-ava" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">🚀</p>'+
     (rankUp ? '<div class="unlock-banner"><img class="rankup-img" src="'+charImg(state.char.g, rankInfo().idx)+'" alt="">'+
       tr('🎖️ Ура! '+T()+' '+N()+' получает новый ранг: «<b>'+rankNow+'</b>»!',
          '🎖️ Hooray! '+T()+' '+N()+' earns a new rank: “<b>'+rankNow+'</b>”!')+
@@ -2433,6 +2531,7 @@ function finishLevel(){
     (!state.daily.claimed && missionProgress()>=todaysMission().target ? '<div class="unlock-banner">'+
       tr('🎯 Миссия дня выполнена — забери награду на карте!',
          '🎯 Daily mission complete — claim your reward on the map!')+'</div>' : '')+
+    achBanners(newAch)+
     (clearedNow
       ? '<button class="btn-next" onclick="renderOutro('+cur.wi+',0)">'+tr('Дальше ✨','Continue ✨')+'</button>'
       : '<button class="btn-next" onclick="renderHome()">'+tr('На карту 🗺️','To the map 🗺️')+'</button>')+
