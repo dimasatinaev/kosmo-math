@@ -346,6 +346,18 @@
   .ach-card .ad { font-size:10.5px; opacity:.7; line-height:1.3; margin-top:3px; }
   .ach-card.locked { filter:grayscale(.85); opacity:.55; }
   .ach-card.locked::after { content:'🔒'; position:absolute; top:8px; right:9px; font-size:14px; }
+  .ach-card { cursor:pointer; font-family:inherit; color:inherit; transition:transform .12s; }
+  .ach-card:active { transform:scale(.95); }
+  /* achievement modal */
+  .ach-big { width:150px; height:150px; display:block; margin:0 auto; object-fit:contain;
+    filter:drop-shadow(0 12px 26px rgba(255,201,77,.35)); animation:starPop .5s var(--ease-enter) both; }
+  .ach-big.locked { filter:grayscale(.9) drop-shadow(0 10px 20px rgba(0,0,0,.4)); opacity:.75; }
+  .ach-big-fallback { font-size:84px; line-height:150px; text-align:center; }
+  .ach-status { margin-top:12px; font-weight:1000; font-size:16px; color:#5fe19a; }
+  .ach-status.dim { color:rgba(255,255,255,.65); }
+  .ach-prog { margin-top:14px; }
+  .ach-prog .daily-bar { max-width:220px; margin:0 auto; }
+  .ach-prog-num { margin-top:6px; font-size:13px; font-weight:800; opacity:.85; }
   .xpbar { height:13px; background:rgba(0,0,0,.4); border-radius:8px; overflow:hidden;
     border:1px solid rgba(255,255,255,.10); box-shadow:inset 0 2px 4px rgba(0,0,0,.4); }
   .xpbar > div { height:100%; background:linear-gradient(90deg,#6ee7a0,#2fd573); border-radius:8px;
@@ -1759,18 +1771,28 @@ function renderHome(){
 
 /* ---------- achievements ---------- */
 const ACH = [
-  { i:'👣', ru:['Первый шаг','Реши свою первую задачу'],        en:['First Step','Solve your first problem'],        t:()=> (state.stats.tasks||0) >= 1 },
-  { i:'🧮', ru:['Задачник','Реши 100 задач'],                   en:['Problem Master','Solve 100 problems'],           t:()=> (state.stats.tasks||0) >= 100 },
-  { i:'🎯', ru:['Без промаха','Пройди уровень без ошибок'],     en:['Flawless','Finish a level with no mistakes'],    t:()=> (state.stats.perfect||0) >= 1 },
-  { i:'🏹', ru:['Снайпер','10 уровней без ошибок'],             en:['Sniper','10 flawless levels'],                   t:()=> (state.stats.perfect||0) >= 10 },
-  { i:'🌙', ru:['Покоритель Луны','Пройди все уровни Луны'],    en:['Moon Conqueror','Finish every Moon level'],      t:()=> WORLDS[1].levels.every((_,li)=> lvlStars(1,li) > 0) },
+  { i:'👣', ru:['Первый шаг','Реши свою первую задачу'],        en:['First Step','Solve your first problem'],        t:()=> (state.stats.tasks||0) >= 1,
+    p:()=> [Math.min(state.stats.tasks||0,1), 1] },
+  { i:'🧮', ru:['Задачник','Реши 100 задач'],                   en:['Problem Master','Solve 100 problems'],           t:()=> (state.stats.tasks||0) >= 100,
+    p:()=> [Math.min(state.stats.tasks||0,100), 100] },
+  { i:'🎯', ru:['Без промаха','Пройди уровень без ошибок'],     en:['Flawless','Finish a level with no mistakes'],    t:()=> (state.stats.perfect||0) >= 1,
+    p:()=> [Math.min(state.stats.perfect||0,1), 1] },
+  { i:'🏹', ru:['Снайпер','10 уровней без ошибок'],             en:['Sniper','10 flawless levels'],                   t:()=> (state.stats.perfect||0) >= 10,
+    p:()=> [Math.min(state.stats.perfect||0,10), 10] },
+  { i:'🌙', ru:['Покоритель Луны','Пройди все уровни Луны'],    en:['Moon Conqueror','Finish every Moon level'],      t:()=> WORLDS[1].levels.every((_,li)=> lvlStars(1,li) > 0),
+    p:()=> [WORLDS[1].levels.filter((_,li)=> lvlStars(1,li) > 0).length, WORLDS[1].levels.length] },
   { i:'🏴‍☠️', ru:['Гроза пиратов','Победи пирата Крыса'],        en:['Pirate’s Bane','Defeat Pirate Kryss'],           t:()=> lvlStars(2, WORLDS[2].levels.length-1) > 0 },
-  { i:'🔥', ru:['Неделя в космосе','Серия 7 дней подряд'],      en:['Space Week','A 7-day streak'],                   t:()=> ((state.streak&&state.streak.best)||0) >= 7 },
-  { i:'✨', ru:['Коллекционер','Собери 50 звёзд'],              en:['Collector','Collect 50 stars'],                  t:()=> totalStars() >= 50 },
-  { i:'💫', ru:['Суперзвезда','Собери все 150 звёзд'],          en:['Superstar','Collect all 150 stars'],             t:()=> totalStars() >= MAX_STARS },
+  { i:'🔥', ru:['Неделя в космосе','Серия 7 дней подряд'],      en:['Space Week','A 7-day streak'],                   t:()=> ((state.streak&&state.streak.best)||0) >= 7,
+    p:()=> [Math.min((state.streak&&state.streak.best)||0,7), 7] },
+  { i:'✨', ru:['Коллекционер','Собери 50 звёзд'],              en:['Collector','Collect 50 stars'],                  t:()=> totalStars() >= 50,
+    p:()=> [Math.min(totalStars(),50), 50] },
+  { i:'💫', ru:['Суперзвезда','Собери все 150 звёзд'],          en:['Superstar','Collect all 150 stars'],             t:()=> totalStars() >= MAX_STARS,
+    p:()=> [totalStars(), MAX_STARS] },
   { i:'🌟', ru:['Чистое небо','Прогони злодея из целого мира'], en:['Clear Skies','Chase a villain out of a world'],  t:()=> Object.keys(state.outros||{}).length >= 1 },
-  { i:'⭐', ru:['Капитан','Достигни ранга Капитан'],            en:['Captain','Reach the Captain rank'],              t:()=> state.xp >= 2400 },
-  { i:'👑', ru:['Адмирал Галактики','Достигни высшего ранга'],  en:['Galaxy Admiral','Reach the highest rank'],       t:()=> state.xp >= 3400 },
+  { i:'⭐', ru:['Капитан','Достигни ранга Капитан'],            en:['Captain','Reach the Captain rank'],              t:()=> state.xp >= 2400,
+    p:()=> [Math.min(state.xp,2400), 2400] },
+  { i:'👑', ru:['Адмирал Галактики','Достигни высшего ранга'],  en:['Galaxy Admiral','Reach the highest rank'],       t:()=> state.xp >= 3400,
+    p:()=> [Math.min(state.xp,3400), 3400] },
 ];
 function checkAch(){          // → newly unlocked achievement defs
   if (!state.ach) state.ach = {};
@@ -2127,14 +2149,47 @@ function renderAchievements(){
     '<div class="ach-grid">'+
     ACH.map((a,i)=>{
       const ok = !!got['a'+(i+1)];
-      return '<div class="ach-card'+(ok?'':' locked')+'">'+
+      return '<button class="ach-card'+(ok?'':' locked')+'" onclick="showAchCard('+i+')">'+
         '<img src="achievements/web/ach_'+(i+1)+'.png" alt="" loading="lazy" '+
           'onerror="this.outerHTML=\'<span class=&quot;ach-fallback&quot;>'+a.i+'</span>\'">'+
         '<div class="an">'+a[LANG()][0]+'</div>'+
         '<div class="ad">'+a[LANG()][1]+'</div>'+
-        '</div>';
+        '</button>';
     }).join('')+
     '</div>';
+}
+
+/* achievement detail modal: big medallion + status / progress */
+function showAchCard(i){
+  sndClick();
+  const a = ACH[i];
+  const ok = !!(state.ach||{})['a'+(i+1)];
+  const prog = (!ok && a.p) ? a.p() : null;
+  const el = document.createElement('div');
+  el.className = 'card-overlay';
+  el.id = 'achOverlay';
+  el.addEventListener('click', e => { if (e.target === el) closeAchCard(); });
+  el.innerHTML =
+    '<div class="streak-panel">'+
+    '<img class="ach-big'+(ok?'':' locked')+'" src="achievements/web/ach_'+(i+1)+'.png" alt="" '+
+      'onerror="this.outerHTML=\'<div class=&quot;ach-big-fallback&quot;>'+a.i+'</div>\'">'+
+    '<div class="streak-cap" style="margin-top:8px">'+a[LANG()][0]+'</div>'+
+    '<div class="streak-desc" style="margin-top:6px">'+a[LANG()][1]+'</div>'+
+    (ok
+      ? '<div class="ach-status">✅ '+tr('Получено!','Unlocked!')+'</div>'
+      : (prog
+        ? '<div class="ach-prog"><div class="daily-bar"><div style="width:'+
+            Math.round(100*prog[0]/prog[1])+'%"></div></div>'+
+            '<div class="ach-prog-num">'+prog[0]+' / '+prog[1]+'</div></div>'
+        : '<div class="ach-status dim">🔒 '+tr('Ещё впереди!','Still ahead!')+'</div>'))+
+    '<button class="btn-next" style="margin-top:14px" onclick="closeAchCard()">'+
+      tr('Понятно','Got it')+'</button>'+
+    '</div>';
+  document.body.appendChild(el);
+}
+function closeAchCard(){
+  const el = document.getElementById('achOverlay');
+  if (el){ el.remove(); sndClick(); }
 }
 
 /* ---------- character screen ---------- */
